@@ -1,0 +1,50 @@
+$color-selection: #0a5175;
+
+$color-overlays: aliceblue;
+$color-content: white;
+
+$color-surface: rgba(255, 255, 255, 0.74);
+$color-border: rgba(0, 0, 0, 0.05);
+
+$color-text-primary: #1d1d1f;
+$color-text-secondary: #3c3c43;
+$color-text-muted: #8e8e93;
+
+$color-background: #fff;
+$color-background-disabled: #f5f5f7;
+
+$color-border: #d2d2d7;
+$color-border-hover: #b6b6bc;
+
+$color-primary-focus: rgba(0, 113, 227, 0.2);
+
+$color-success: #34c759;
+$color-error: #ff3b30;
+
+$color-authors: darkgray;
+
+$color-articles: rgb(0, 255, 0);
+$color-direction: #ffaa00;
+$color-ideas: #a103fc;
+
+$color-view: 255, 215, 0;
+$color-research: 255, 20, 0;
+$color-report: 33, 148, 243;
+$color-knowledge: 0, 153, 0;
+$color-project: 155, 39, 176;
+$color-teaching: 180, 130, 34;
+$color-activity: 34, 86, 244;
+$color-talk: 86, 244, 34;
+
+$color-completed: rgb(0, 100, 0);
+
+$color-ques: #3b82f6;
+$color-fix: #22c55e;
+$color-todo: #f59e0b;
+
+$color-off: lightgray;
+
+// For substates of top items
+$color-working: 150, 0, 0;
+$color-complete: 0, 100, 0;
+$color-discard: 0, 0, 0;

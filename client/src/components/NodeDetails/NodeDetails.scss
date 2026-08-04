@@ -1,0 +1,29 @@
+.node-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  height: 100%;
+
+  &__toc {
+    flex-grow: 1;
+
+    overflow-y: auto;
+    ul {
+      list-style: none;
+
+      li:hover {
+      }
+    }
+
+    & > ul > li > .structured-section__section__headline {
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    & > ul {
+      padding: 0;
+    }
+  }
+}

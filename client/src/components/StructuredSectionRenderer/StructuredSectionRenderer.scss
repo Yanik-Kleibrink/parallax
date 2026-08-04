@@ -1,0 +1,12 @@
+.structured-section {
+  &__section {
+    &__headline {
+      display: flex;
+      gap: 1rem;
+
+      &__title {
+        flex-grow: 1;
+      }
+    }
+  }
+}

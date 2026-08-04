@@ -1,0 +1,42 @@
+[package]
+name = "parallax_server"
+version = "0.2.1"
+edition = "2024"
+
+[dependencies]
+orgize = "0.10.0-alpha.10"
+biblatex = "0.11.0"
+katex = "0.4"
+serde = { version = "1.0.228", features = ["derive", "rc"]}
+serde_yaml = "0.9.34"
+serde_json = "1.0.145"
+regex = "1.11.3"
+itertools = "0.14.0"
+strum = "0.27.2"
+test-log = "0.2.18"
+dashmap = "6.1.0"
+actix-web = { version =  "4.11.0", features = ["rustls-0_23"]}
+actix-ws= "0.3.0"
+tokio = "1.48.0"
+futures-util = "0.3"
+thiserror = "1.0"
+chrono = "0.4.42"
+notify = "8.2.0"
+walkdir = "2.5.0"
+notify-debouncer-full = "0.6.0"
+tokio-stream = { version = "0.1.17", features = ["sync"] }
+derivative = "2.2.0"
+slugify = "0.1.0"
+rust_tikz = { path = "./rust_tikz" }
+rustls = "0.23.36"
+rustls-pemfile = "2.2.0"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+xxhash-rust = {version = "0.8.17", features = ["xxh3"]}
+moka = {version="0.12.15", features= ["future"]}
+actix-files = "0.6.10"
+actix-cors = "0.7.1"
+jsonwebtoken = {version = "11.0.0", features=["rust_crypto"]}
+rand = {version ="0.10.2", features = ["thread_rng"]}
+hex = "0.4.3"
+time = "0.3.55"

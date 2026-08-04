@@ -1,0 +1,192 @@
+.node-view {
+  &__details {
+    flex-grow: 1;
+
+    padding: 1rem;
+
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    &__buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+
+      &__windows {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+
+        &__button {
+        }
+      }
+    }
+
+    &--minimized {
+      flex-grow: 0;
+      position: relative;
+      cursor: pointer;
+
+      & .node-details {
+        &__toc {
+          visibility: collapse;
+        }
+      }
+
+      & .node-view {
+        &__details {
+          &__minimized-indicator {
+            white-space: nowrap;
+
+            font-size: $larger-icon-size;
+
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          }
+        }
+      }
+    }
+
+    &--horizontal {
+      &.node-view__details {
+        flex-direction: column;
+
+        min-width: 40ch;
+        height: 100%;
+        max-width: 50ch;
+
+        // Ensure that the spacing looks correct when no divider is present.
+        &:last-child {
+          margin-right: $default-padding;
+        }
+
+        &--minimized {
+          width: $default-minimized-node-size;
+          min-width: $default-minimized-node-size;
+          & .node-view {
+            &__details {
+              &__buttons {
+                flex-direction: column;
+
+                &__windows {
+                  flex-direction: column;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    &--vertical {
+      &.node-view__details {
+        flex-direction: column;
+
+        min-width: 100%;
+        width: 100%;
+        height: 100%;
+
+        &--minimized {
+          flex-direction: row;
+          align-items: center;
+
+          height: $default-minimized-node-size;
+
+          box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.08),
+            0 2px 8px rgba(0, 0, 0, 0.06);
+
+          & .node-view {
+            &__details {
+              &__buttons {
+                flex-direction: row;
+
+                &__windows {
+                  flex-direction: row;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  &__content {
+    position: relative;
+
+    flex-grow: 1;
+
+    height: 100%;
+    width: 100%;
+
+    padding: 1rem;
+
+    &__wrapper {
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    &--minimized {
+      cursor: pointer;
+      flex-grow: 0;
+      .node-view__content__wrapper {
+        visibility: collapse;
+      }
+
+      .node-view__content__minimized-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        font-size: $larger-icon-size;
+      }
+    }
+
+    &--horizontal {
+      &.node-view__content {
+        // This ensures that the spacing looks correct when no divider is present.
+        &:last-child {
+          margin-right: $default-padding;
+        }
+
+        &--minimized {
+          width: $default-minimized-node-size;
+          min-width: $default-minimized-node-size;
+        }
+      }
+    }
+
+    &--vertical {
+      // No need to style minimized here as it can never occur in vertical mode.
+    }
+
+    &__button {
+      position: absolute;
+      bottom: $default-padding;
+      right: $default-padding;
+    }
+  }
+}
+
+.divider {
+  &--horizontal {
+    width: 1px;
+    min-width: 1px;
+    margin-inline: 1rem;
+    height: 90%;
+    background: rgba(0, 0, 0, 0.25);
+
+    align-self: center;
+
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
+  }
+
+  &--vertical {
+    display: none;
+  }
+}

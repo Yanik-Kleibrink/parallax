@@ -1,0 +1,102 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 140 140"
+  width="140"
+  height="140"
+  fill="currentColor"
+>
+
+  {{#if iconPresent}}
+    <polygon
+      points="16,27.713 -16,27.713 -32,0 -16,-27.713 16,-27.713 32,0"
+      mask="url(#iconMask_{{id}})"
+      transform="translate(70 70)"
+      fill="currentColor"
+    />
+    <mask id="iconMask_{{id}}" mask-type="luminance">
+      <rect x="-70" y="-70" width="140" height="140" fill="white"></rect>
+      <g transform="translate(-16 -16) scale(2)" color="black">
+        {{{icon}}}
+      </g>
+    </mask>
+  {{else}}
+    <polygon
+      points="16,27.713 -16,27.713 -32,0 -16,-27.713 16,-27.713 32,0"
+      transform="translate(70 70)"
+      fill="currentColor"
+    />
+  {{/if}}
+
+  {{#if stars}}
+    <g transform="rotate(-120 70 70)">
+      {{#if one.inverted}}
+        <g
+          transform="translate(54 10.287) scale(2)"
+          mask="url(#stateOneMask_{{id}})"
+        >
+          {{{one.background}}}
+        </g>
+        <mask id="stateOneMask_{{id}}" mask-type="luminance">
+          <rect x="0" y="0" width="140" height="140" fill="white"></rect>
+          <g transform="translate(2 2) scale(0.75)" color="black">
+            {{{one.foreground}}}
+          </g>
+        </mask>
+      {{else}}
+        <g transform="translate(54 10.287) scale(2)">
+          {{{one.background}}}
+        </g>
+        <g transform="translate(62 18.287)">
+          {{{one.foreground}}}
+        </g>
+      {{/if}}
+    </g>
+
+    {{#if three.inverted}}
+      <g
+        transform="translate(54 10.287) scale(2)"
+        mask="url(#stateThreeMask_{{id}})"
+      >
+        {{{three.background}}}
+      </g>
+      <mask id="stateThreeMask_{{id}}" mask-type="luminance">
+        <rect x="0" y="0" width="140" height="140" fill="white"></rect>
+        <g transform="translate(2 2) scale(0.75)" color="black">
+          {{{three.foreground}}}
+        </g>
+      </mask>
+    {{else}}
+      <g transform="translate(54 10.287) scale(2)">
+        {{{three.background}}}
+      </g>
+      <g transform="translate(62 18.287)">
+        {{{three.foreground}}}
+      </g>
+    {{/if}}
+
+    <g transform="rotate(120 70 70)">
+      {{#if two.inverted}}
+        <g
+          transform="translate(54 10.287) scale(2)"
+          mask="url(#stateTwoMask_{{id}})"
+        >
+          {{{two.background}}}
+        </g>
+        <mask id="stateTwoMask_{{id}}" mask-type="luminance">
+          <rect x="0" y="0" width="140" height="140" fill="white"></rect>
+          <g transform="translate(2 2) scale(0.75)" color="black">
+            {{{two.foreground}}}
+          </g>
+        </mask>
+      {{else}}
+        <g transform="translate(54 10.287) scale(2)">
+          {{{two.background}}}
+        </g>
+        <g transform="translate(62 18.287)">
+          {{{two.foreground}}}
+        </g>
+      {{/if}}
+    </g>
+  {{/if}}
+
+</svg>

@@ -1,0 +1,33 @@
+.node-content-wrapper {
+  container: node-content-container / inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.node-content-container {
+  // Ensure that there is space for the TQFs
+  width: min(100%, $max-width * 1.5);
+  container: structured-content-container / inline-size;
+}
+
+.node-content {
+  max-width: $max-width;
+  position: relative;
+
+  // Ensure that there is space at the bottom for new content.
+  &::after {
+    content: "";
+    display: block;
+    height: 50cqh;
+  }
+}
+
+@container node-content-container (max-width: #{$breakpoint-inline-tqfs}) {
+  .node-content-container {
+    max-width: min(100%, $max-width);
+  }
+}

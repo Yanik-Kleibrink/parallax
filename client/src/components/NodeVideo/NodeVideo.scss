@@ -1,0 +1,21 @@
+.node-video {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+
+  &__wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9; // Forces standard 16:9 widescreen ratio
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px; // Optional: rounded corners
+
+    &__player {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  }
+}

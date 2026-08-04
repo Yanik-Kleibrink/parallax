@@ -1,0 +1,215 @@
+use actix_web::{
+    HttpResponse, Responder, cookie::Cookie, cookie::SameSite,
+    error::ErrorUnauthorized, web,
+};
+use jsonwebtoken::{
+    DecodingKey, EncodingKey, Header, Validation, decode, encode,
+};
+use moka::future::Cache;
+use serde::{Deserialize, Serialize};
+use time;
+use tracing::info;
+
+/// The request to generate a JWT.
+#[derive(Deserialize, Clone, Debug)]
+pub struct JWTRequest {
+    /// The group to which the user is requesting access.
+    group: String,
+
+    /// The duration for which the JWT is valid.
+    duration: usize,
+}
+
+/// The claim extracted from the JWT.
+#[derive(Serialize, Deserialize, Debug)]
+struct JWTClaim {
+    /// The group to which the user is requesting access.
+    group: String,
+
+    /// The nonce to prevent replay attacks.
+    nonce: String,
+
+    /// The expiration time of the JWT.
+    exp: usize,
+}
+
+/// The verified claim extracted from the JWT.
+pub struct VerifiedGroup {
+    /// The group to which the user is requesting access.
+    pub group: String,
+}
+
+/// This function generates a random nonce for the JWT.
+pub fn generate_nonce() -> String {
+    let bytes: [u8; 16] = rand::random();
+    hex::encode(bytes)
+}
+
+/// This function generates a random 8-character code consisting of
+/// lowercase letters.
+///
+/// It is later passed back to the client and used as a one-time
+/// password (OTP) for accessing the server.
+fn generate_code() -> String {
+    (0..8)
+        .map(|_| (b'a' + rand::random_range(0..26)) as char)
+        .collect()
+}
+
+impl actix_web::FromRequest for VerifiedGroup {
+    type Error = actix_web::Error;
+    type Future = std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<Self, Self::Error>,
+                >,
+        >,
+    >;
+
+    /// This implements the FromRequest trait for VerifiedGroup,
+    /// allowing it to be extracted from an HttpRequest.
+    ///
+    /// In general, users of the loopback address are granted access
+    /// to the "wheel" group. Otherwise, the function checks for a JWT
+    /// in the "access_token" cookie, decodes it, and verifies its
+    /// expiration. If the token is valid, it returns the group from
+    /// the claim; otherwise, it defaults to "public".
+    fn from_request(
+        req: &actix_web::HttpRequest,
+        _: &mut actix_web::dev::Payload,
+    ) -> Self::Future {
+        // TODO: Error here.
+        let secret = req
+            .app_data::<web::Data<String>>()
+            .expect("Secret not found")
+            .clone();
+
+        let req_clone = req.clone();
+
+        Box::pin(async move {
+            info!("Verifying group from request");
+
+            // Check if the request came from the localhost. If so,
+            // grant access to the "wheel" group.
+            if let Some(peer_addr) = req_clone.peer_addr() {
+                if peer_addr.ip().is_loopback() {
+                    info!(
+                        "Request from localhost, granting access to 'wheel' group"
+                    );
+                    return Ok(VerifiedGroup {
+                        group: "wheel".into(),
+                    });
+                }
+            }
+
+            if let Some(cookie) = req_clone.cookie("access_token") {
+                let token = cookie.value();
+
+                let decoded = decode::<JWTClaim>(
+                    token,
+                    &DecodingKey::from_secret(secret.as_bytes()),
+                    &Validation::default(),
+                )
+                .map_err(|_| ErrorUnauthorized("Invalid token"))?;
+
+                let claim = decoded.claims;
+
+                info!(
+                    group = claim.group.clone(),
+                    expiration = claim.exp,
+                    "Verified JWT claim"
+                );
+
+                Ok(VerifiedGroup { group: claim.group })
+            } else {
+                info!(
+                    "No access_token cookie found, defaulting to 'public' group"
+                );
+                return Ok(VerifiedGroup {
+                    group: "public".into(),
+                });
+            }
+        })
+    }
+}
+
+/// This endpoint is used to generate a one-time password (OTP) for
+/// accessing the server.
+#[actix_web::post("/grant")]
+async fn grant_access(
+    req: web::Json<JWTRequest>,
+    token_cache: web::Data<Cache<String, JWTRequest>>,
+    group: VerifiedGroup,
+) -> impl Responder {
+    if group.group != "wheel" {
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    let otp = generate_code();
+    let jwt_request = req.into_inner();
+    info!(
+        otp,
+        group = jwt_request.group,
+        duration = jwt_request.duration,
+        "Generated OTP"
+    );
+
+    token_cache.insert(otp.clone(), jwt_request).await;
+
+    HttpResponse::Ok().json(otp)
+}
+
+/// This endpoint is used to access the server with a one-time
+/// password (OTP) generated by the /grant endpoint. It sets the
+/// associated secure cookie.
+#[actix_web::get("/access/{otp}")]
+async fn access(
+    otp: web::Path<String>,
+    token_cache: web::Data<Cache<String, JWTRequest>>,
+    secret: web::Data<String>,
+) -> impl Responder {
+    let otp = otp.into_inner().to_lowercase();
+
+    if let Some(req) = token_cache.remove(&otp).await {
+        // Create a JWT claim with the group and nonce.
+        let claim = JWTClaim {
+            group: req.group.clone(),
+            nonce: generate_nonce(),
+            exp: (chrono::Utc::now()
+                + chrono::Duration::seconds(req.duration as i64))
+            .timestamp() as usize,
+        };
+
+        // Encode the claim into a JWT.
+        let token = encode(
+            &Header::default(),
+            &claim,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap();
+
+        info!(
+            group = req.group.clone(),
+            duration = req.duration,
+            "Generated JWT for access"
+        );
+
+        // Set the JWT as a cookie in the response.
+        HttpResponse::Ok()
+            .cookie(
+                Cookie::build("access_token", token)
+                    .path("/")
+                    .http_only(true)
+                    .secure(true)
+                    .max_age(time::Duration::seconds(
+                        req.duration as i64,
+                    ))
+                    .same_site(SameSite::None)
+                    .finish(),
+            )
+            .json(req.group.clone())
+    } else {
+        info!(otp = otp, "Invalid OTP attempt");
+        HttpResponse::Unauthorized().finish()
+    }
+}

@@ -1,0 +1,22 @@
+.navigation {
+  height: 100%;
+  width: 100%;
+  position: relative;
+
+  &__focus-node {
+    --_padding-inline: 1rem;
+    width: min(40ch, calc(100% - 2 * var(--_padding-inline)));
+    position: absolute;
+
+    bottom: 1rem;
+    right: 50%;
+    transform: translateX(50%);
+    z-index: 1;
+
+    background-color: white;
+
+    padding: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+  }
+}

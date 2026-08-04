@@ -1,0 +1,66 @@
+.base-information {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  &__icon {
+    display: grid;
+    grid-template-areas: "stack";
+
+    &__background {
+      width: 3rem;
+      height: 3rem;
+
+      border-radius: 50%;
+      overflow: hidden;
+
+      grid-area: stack;
+    }
+
+    &__switcher {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      grid-area: stack;
+    }
+
+    &:hover,
+    &:focus {
+      & .base-information__icon__background {
+        display: none;
+      }
+    }
+  }
+
+  &__information {
+    flex-grow: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    &__header {
+      display: flex;
+      justify-content: center;
+
+      &__name {
+        font-weight: bold;
+      }
+
+      &__group {
+        color: $color-text-secondary;
+      }
+    }
+
+    &__status {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+
+      color: $color-text-secondary;
+    }
+  }
+}

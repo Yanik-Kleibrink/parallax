@@ -1,0 +1,83 @@
+:root {
+  interpolate-size: allow-keywords;
+}
+
+#root {
+  height: 100dvh;
+  width: 100vw;
+  position: relative;
+  overflow-y: hidden;
+
+  color: $color-text-primary;
+}
+
+a {
+  color: $color-text-primary;
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+  }
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* track */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* thumb */
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+@font-face {
+  font-family: "cmbx10";
+  src: url("/fonts/jsMath-cmbx10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "cmex10";
+  src: url("/fonts/jsMath-cmex10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "cmmi10";
+  src: url("/fonts/jsMath-cmmi10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "cmr10";
+  src: url("/fonts/jsMath-cmr10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "cmsy10";
+  src: url("/fonts/jsMath-cmsy10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "cmti10";
+  src: url("/fonts/jsMath-cmti10.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}

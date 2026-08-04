@@ -1,0 +1,319 @@
+/* Shared heading styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.6em;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+h3 {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+}
+
+h4 {
+  font-size: 1.125rem;
+}
+
+h5 {
+  font-size: 1rem;
+}
+
+h6 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $color-text-muted;
+}
+
+.structured-content {
+  &__paragraph {
+    margin-block: 0.25rem;
+  }
+
+  &__itemize {
+    margin-block: 0.25rem;
+    padding-inline-start: 1.5rem;
+  }
+
+  &__citation {
+    &__references {
+      &__reference {
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  &__tqf {
+    position: absolute;
+    left: calc(100% + 2.5rem);
+
+    width: min(calc(100cqw - $max-width - 2.5rem), 0.5 * $max-width);
+    overflow: hidden;
+
+    padding: 0.9rem 1rem;
+
+    line-height: 1.6;
+    color: $color-text-secondary;
+
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 12px;
+
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.05);
+
+    transition:
+      transform 0.22s cubic-bezier(0.28, 0.11, 0.32, 1),
+      box-shadow 0.22s ease,
+      border-color 0.22s ease;
+
+    &--question {
+      --accent: #f5b400;
+    }
+
+    &--todo {
+      --accent: #007aff;
+    }
+
+    &--fix {
+      --accent: #ff453a;
+    }
+
+    // The font size needs to be adjust for children as otherwise the width computation will be incorrect.
+    * {
+      font-size: 0.875rem;
+    }
+  }
+
+  &__tqf::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  &__tqf:hover,
+  &__tqf:focus-within {
+    transform: translateY(-1px);
+    border-color: rgba(0, 0, 0, 0.08);
+
+    z-index: 10;
+
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 12px 32px rgba(0, 0, 0, 0.07);
+  }
+
+  &__block {
+    &--definition,
+    &--corollary,
+    &--lemma,
+    &--proposition,
+    &--theorem,
+    &--remark,
+    &--example,
+    &--notation,
+    &--intuition,
+    &--question,
+    &--conjecture,
+    &--convention {
+      position: relative;
+
+      --accent: #8e8e93;
+
+      padding: 1rem 1.25rem;
+      margin-block: 1rem;
+
+      border-left: 3px solid var(--accent);
+      border-radius: 14px;
+
+      background: color-mix(in oklab, white 94%, var(--accent));
+      color: #1d1d1f;
+
+      &::before {
+        display: block;
+        margin-bottom: 0.75rem;
+
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        line-height: 1;
+
+        color: var(--accent);
+      }
+    }
+
+    /* Accent colors */
+
+    &--definition {
+      --accent: #d4a017;
+    }
+
+    &--corollary {
+      --accent: #66b96e;
+    }
+
+    &--lemma {
+      --accent: #49a15d;
+    }
+
+    &--proposition {
+      --accent: #2d8a52;
+    }
+
+    &--theorem {
+      --accent: #1e7a3b;
+    }
+
+    &--example {
+      --accent: #d97706;
+    }
+
+    &--remark {
+      --accent: #b7791f;
+    }
+
+    &--notation {
+      --accent: #6e6e73;
+    }
+
+    &--intuition {
+      --accent: #8e8e93;
+    }
+
+    &--question {
+      --accent: #0a84ff;
+    }
+
+    &--conjecture {
+      --accent: #5e5ce6;
+    }
+
+    &--convention {
+      --accent: #ff453a;
+    }
+
+    /* Labels */
+
+    &--definition::before {
+      content: "Definition";
+    }
+
+    &--corollary::before {
+      content: "Corollary";
+    }
+
+    &--lemma::before {
+      content: "Lemma";
+    }
+
+    &--proposition::before {
+      content: "Proposition";
+    }
+
+    &--theorem::before {
+      content: "Theorem";
+    }
+
+    &--remark::before {
+      content: "Remark";
+    }
+
+    &--example::before {
+      content: "Example";
+    }
+
+    &--notation::before {
+      content: "Notation";
+    }
+
+    &--intuition::before {
+      content: "Intuition";
+    }
+
+    &--question::before {
+      content: "Question";
+    }
+
+    &--conjecture::before {
+      content: "Conjecture";
+    }
+
+    &--convention::before {
+      content: "Convention";
+    }
+
+    /* Proof */
+
+    &--proof::before {
+      content: "Proof";
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-right: 0.5rem;
+    }
+
+    &--proof::after {
+      content: "∎";
+      display: block;
+      text-align: right;
+      margin-top: 1rem;
+      color: #6e6e73;
+    }
+
+    &__name {
+      position: absolute;
+      top: 0.75rem;
+      right: 1rem;
+
+      display: inline-flex;
+      align-items: center;
+
+      padding: 0.25rem 0.6rem;
+
+      border-radius: 999px;
+
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1;
+
+      color: var(--accent);
+      background: color-mix(in oklab, white 82%, var(--accent));
+
+      & p {
+        margin: 0;
+      }
+    }
+  }
+}
+
+@container structured-content-container (max-width: #{$breakpoint-inline-tqfs}) {
+  .structured-content__tqf {
+    position: static;
+    width: auto;
+    margin: 1rem 0 2rem;
+  }
+}

@@ -1,0 +1,128 @@
+.sidebar-container {
+  height: 100%;
+
+  position: relative;
+  border-radius: $default-padding;
+  overflow: hidden;
+
+  background-color: white;
+
+  width: 100%;
+  height: 100%;
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  container: sidebar-container / inline-size;
+
+  &__base-information {
+    position: absolute;
+
+    padding: $default-padding;
+    z-index: 20;
+
+    background-color: white;
+
+    width: min($breakpoint-base-selector, 100%);
+    border-radius: $default-padding $default-padding 0 0;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.1);
+    border-width: 1px;
+  }
+
+  &__search {
+    position: absolute;
+    bottom: $default-padding;
+    right: 50%;
+    transform: translateX(50%);
+
+    padding: 0.5rem 1rem;
+    height: 3rem;
+    z-index: 20;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    background-color: white;
+    width: min(50ch, calc(100% - 2 * $default-padding));
+
+    border-radius: 1.5rem;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.1);
+    border-width: 1px;
+
+    & input {
+      all: unset;
+
+      flex-grow: 1;
+
+      color: $color-text-primary;
+    }
+
+    & button {
+      all: unset;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  &--minimized {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+
+    & .sidebar-container {
+      &__overlay {
+      }
+    }
+    & .navigation {
+      visibility: collapse;
+    }
+  }
+
+  &--horizontal {
+    & .sidebar-container {
+      max-width: $default-minimized-node-size;
+      min-width: $default-minimized-node-size;
+
+      &__controls {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+
+        display: flex;
+        gap: $default-padding;
+      }
+      &__overlay {
+        font-size: $larger-icon-size;
+      }
+    }
+  }
+
+  &--vertical {
+    & .sidebar-container {
+      max-height: $default-minimized-node-size;
+      min-height: $default-minimized-node-size;
+    }
+  }
+}
+
+@container sidebar-container (min-width: #{$breakpoint-base-selector}) {
+  .sidebar-container {
+    &__base-information {
+      border-radius: $default-padding 0 $default-padding 0;
+    }
+  }
+}
