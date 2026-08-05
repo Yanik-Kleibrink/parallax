@@ -414,6 +414,15 @@ impl InternalItem {
     /// Note that this also renders the title.
     #[instrument(skip(self), fields(self.key = %self.key))]
     pub fn export(&mut self) -> Result<(), Box<dyn Error>> {
+        // This if is necessary as it could be that several competing
+        // threads first acquire a read lock where they all
+        // realize that the export is not present
+        // and then they all invoke the export function.
+        if self.export.is_some() {
+            debug!("Export already present, skipping export");
+            return Ok(());
+        }
+
         self.export = Some(Arc::new(
             self.export_config.parse(&self.org_content),
         ));
