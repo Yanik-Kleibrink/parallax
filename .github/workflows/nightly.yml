@@ -55,8 +55,8 @@ jobs:
       - name: Package Files
         run: |
           tar -cJf server.tar.xz server
-          # Uses -C to archive contents without preserving nested folder structure
-          tar -C client/build/client -cJf client.tar.xz .
+          cd client/build
+          tar -cJf ../../client.tar.xz client
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
