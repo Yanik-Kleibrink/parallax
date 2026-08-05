@@ -238,7 +238,7 @@ export function getMiniIconForFlavorPath(flavor: MiniNodeFlavor): string {
     case "Knowledge":
       return "/src/assets/knowledge.svg";
     case "Constituent":
-      return "/src/assets/error.svg";
+      return "/src/assets/error-mini.svg";
     case "Research":
       return `/src/assets/research-mini.svg`;
     case "Report":
@@ -256,7 +256,7 @@ export function getMiniIconForFlavorPath(flavor: MiniNodeFlavor): string {
     case "Article":
       return "/src/assets/reference.svg";
     default:
-      return "/src/assets/error.svg";
+      return "/src/assets/error-mini.svg";
   }
 }
 

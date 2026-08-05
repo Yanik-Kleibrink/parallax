@@ -7,12 +7,6 @@ import { ArrowRepeat, Trash } from "react-bootstrap-icons";
 
 import "./BasePreview.scss";
 
-/**
- * kds
- * kdsl
- *
- * @param eks
- */
 export function BasePreview({
   base,
   onRemove,
