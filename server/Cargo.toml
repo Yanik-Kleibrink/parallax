@@ -2,6 +2,9 @@
 name = "parallax_server"
 version = "0.2.1"
 edition = "2024"
+description = "A simple citation and project manager for research."
+repository = "https://github.com/Yanik-Kleibrink/parallax"
+license = "AGPLv3"
 
 [dependencies]
 orgize = "0.10.0-alpha.10"
@@ -27,7 +30,7 @@ notify-debouncer-full = "0.6.0"
 tokio-stream = { version = "0.1.17", features = ["sync"] }
 derivative = "2.2.0"
 slugify = "0.1.0"
-rust_tikz = { path = "./rust_tikz" }
+rust_tikz = { path = "./rust_tikz", version = "0.1.0" }
 rustls = "0.23.36"
 rustls-pemfile = "2.2.0"
 tracing = "0.1.44"
