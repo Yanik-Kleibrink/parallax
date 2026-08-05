@@ -73,9 +73,12 @@ export type MiniNodeFlavor =
   | "Article"
   | "GeneralReference"
   | "Constituent"
-  | "Tag";
+  | "Tag"
+  | "Unknown";
 
-export function toMiniNodeFlavor(flavor: ItemFlavor | "Tag"): MiniNodeFlavor {
+export function toMiniNodeFlavor(
+  flavor: ItemFlavor | "Tag" | "Unknown"
+): MiniNodeFlavor {
   if (typeof flavor === "string") {
     return flavor;
   }
