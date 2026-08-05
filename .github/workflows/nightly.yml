@@ -81,16 +81,17 @@ jobs:
 
       - name: Extract Client Archive
         run: |
-          mkdir -p dist
-          tar -xf client.tar.xz -C dist
+          tar -xf client.tar.xz
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v4
+        with:
+          enablement: true
         
       - name: Upload Artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist 
+          path: client
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -115,16 +116,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-archives
-
-      - name: Delete Existing Nightly Tag/Release (Roll-forward)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.vars.outputs.tag }}
-        run: |
-          # Delete the release and cleanup the associated tag safely using GitHub CLI
-          gh release delete "$TAG" --cleanup-tag --yes || true
-          # Fallback to delete remote git reference directly if tag lingers
-          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$TAG" || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
