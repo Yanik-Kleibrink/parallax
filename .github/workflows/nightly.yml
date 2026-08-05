@@ -46,7 +46,9 @@ jobs:
         working-directory: client
         run: |
           npm ci
+          echo "=== Setup Done ==="
           npm run generate-icons
+          echo "=== Icons Generated ==="
           BASE_PATH="/parallax/ npm run build
 
       - name: Package Files
