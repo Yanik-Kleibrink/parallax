@@ -67,7 +67,7 @@ export function NodePreview({
         [...childrenFocusNode.entries()]
           .filter(([key]) => key !== nodeID) // Exclude the focus node itself from child statistics
           .map(([, flavor]) => flavor)
-          .filter((flavor) => flavor !== undefined)
+          .filter((flavor) => flavor !== undefined && flavor !== "Unknown")
           .map(toMiniNodeFlavor)
           .reduce((map, name) => {
             const key = name as MiniNodeFlavor;

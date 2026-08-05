@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+# This install script downloads the required tikzjax wasm and font files.
+
 # First get the base assets
 git clone https://github.com/bill-ion/tikzjax
 
@@ -14,7 +16,7 @@ npx gulp install-fonts
 sed -i '/rmdir/d' encodeFonts.js
 node encodeFonts.js
 
-cp -p dist/fonts.css ../client/public/fonts.css
+install -D dist/fonts.css ../client/public/fonts.css
 
 cd tex_files
 gunzip *.gz
@@ -34,12 +36,15 @@ tar -czf tex_files.tar.gz *
 
 cd ../..
 
-cp -p tikzjax/tex_files/tex_files.tar.gz server/rust_tikz/src/assets/tex_files.tar.gz
+install -D tikzjax/tex_files/tex_files.tar.gz server/rust_tikz/src/assets/tex_files.tar.gz
 
 cd tikzjax
 
 gunzip tex.wasm.gz
 gunzip core.dump.gz
 
-cp -p tex.wasm ../server/rust_tikz/src/assets/tex.wasm
-cp -p core.dump ../server/rust_tikz/src/assets/core.dump
+install -D tex.wasm ../server/rust_tikz/src/assets/tex.wasm
+install -D core.dump ../server/rust_tikz/src/assets/core.dump
+
+cd ..
+rm -rf tikzjax

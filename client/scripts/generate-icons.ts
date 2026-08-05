@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import Handlebars from "handlebars";
 
+// Generate assets folder if it does not exist
+await fs.mkdir("src/assets", { recursive: true });
+
 const template = await fs.readFile("scripts/icon.svg.hbs", "utf8");
 
 // This ensures that the ids used in the SVG are unique, preventing conflicts when multiple icons are used on the same page.
