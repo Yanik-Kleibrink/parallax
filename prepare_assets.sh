@@ -11,7 +11,7 @@ cd tikzjax
 # NOTE: In comparison to tikzjax, the fonts are not patched.
 sed -i '/github/d' package.json
 npm i
-npx gulp download-fonts
+curl -L -O http://mirrors.ctan.org/fonts/cm/ps-type1/bakoma.zip
 npx gulp install-fonts
 sed -i '/rmdir/d' encodeFonts.js
 node encodeFonts.js

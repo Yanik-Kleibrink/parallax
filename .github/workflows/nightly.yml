@@ -30,6 +30,21 @@ jobs:
       - name: Generate Tikzjax Assets
         run: ./prepare_assets.sh
 
+      - name: Cache Tikzjax Assets
+        id: tikzjax-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            server/rust_tikz/src/assets/core.dump
+            server/rust_tikz/src/assets/tex.wasm
+            server/rust_tikz/src/assets/tex_files.tar.gz
+            client/public/fonts.css
+          key: tikzjax-assets-${{ hashFiles('prepare_assets.sh') }}
+
+      - name: Generate Tikzjax Assets
+        if: steps.tikzjax-cache.outputs.cache-hit != 'true'
+        run: ./prepare_assets.sh
+
       - name: Install dependencies & Build Client for Pages
         working-directory: client
         run: |
