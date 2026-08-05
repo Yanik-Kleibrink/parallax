@@ -1,0 +1,160 @@
+name: Nightly Deploy and Release
+
+on:
+  schedule:
+    # Runs every day at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+concurrency:
+  group: nightly-deploy-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+
+      - name: Generate Tikzjax Assets
+        run: ./prepare_assets.sh
+
+      - name: Install dependencies & Build Client for Pages
+        working-directory: client
+        run: |
+          npm ci
+          npm run generate-icons
+          npm run build
+
+      - name: Package Files
+        run: |
+          tar -cJf server.tar.xz server
+          # Uses -C to archive contents without preserving nested folder structure
+          tar -C client/build/client -cJf client.tar.xz .
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archives
+          retention-days: 1
+          path: |
+            server.tar.xz
+            client.tar.xz
+
+  deploy:
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archives
+
+      - name: Extract Client Archive
+        run: |
+          mkdir -p dist
+          tar -xf client.tar.xz -C dist
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload Artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  nightly-release:
+    permissions:
+      contents: write
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Tag, Date, and Repo Context
+        id: vars
+        run: |
+          TAG_NAME="nightly-$(date -u +'%Y%m%d')"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archives
+
+      - name: Delete Existing Nightly Tag/Release (Roll-forward)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          # Delete the release and cleanup the associated tag safely using GitHub CLI
+          gh release delete "$TAG" --cleanup-tag --yes || true
+          # Fallback to delete remote git reference directly if tag lingers
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$TAG" || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "Nightly Build (${{ steps.vars.outputs.date }})"
+          body: |
+            ### 🚀 Nightly Build (${{ steps.vars.outputs.date }})
+
+            Automated development snapshot built directly from the main branch.
+
+            ---
+
+            ### 📦 Included Assets
+            * **`client.tar.xz`**: Pre-built static client assets for self-hosting.
+            * **`server.tar.xz`**: Backend server source package.
+
+            ---
+
+            ### 🌐 Deployed Services
+            * **GitHub Pages Preview**: [View Live Deployment](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)
+            * **Commit Reference**: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+            ---
+
+            ### 🛠️ Getting Started
+
+            #### 1. Self-Hosting the Client
+            Extract the client archive and serve it using a modern web server or reverse proxy (such as Caddy, Nginx, or Apache):
+            ```sh
+            tar -xf client.tar.xz
+            # Serve the resulting directory with your web server of choice
+            ```
+
+            #### 2. Running the Server
+            Build and launch the backend server in release mode:
+            ```sh
+            tar -xf server.tar.xz
+            cd server
+            cargo run --release -- [path to base]
+            ```
+          prerelease: true
+          files: |
+            client.tar.xz
+            server.tar.xz
