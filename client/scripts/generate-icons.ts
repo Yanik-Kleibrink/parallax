@@ -233,7 +233,6 @@ for (const variant of variants) {
     patternOutside: variant.segments > 0 ? `${segmentContent} ${gap}` : "",
     icon: icon,
   });
-  console.log(svg);
   id = id + 1;
 
   const svgPath = `src/assets/${variant.name}.svg`;
@@ -353,10 +352,6 @@ for (const variant of variantsReferences) {
         id: id,
       });
       id = id + 1;
-
-      console.log("Inside loop for variant:", variant.name);
-
-      console.log(svg);
 
       const svgPath = `src/assets/${variant.name}-${achieved_state}-${desire_state}.svg`;
 
