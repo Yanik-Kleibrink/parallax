@@ -49,7 +49,7 @@ jobs:
           echo "=== Setup Done ==="
           npm run generate-icons
           echo "=== Icons Generated ==="
-          BASE_PATH="/parallax/ npm run build
+          BASE_PATH="/parallax/" npm run build
 
       - name: Package Files
         run: |
