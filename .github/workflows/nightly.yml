@@ -42,7 +42,7 @@ jobs:
         if: steps.tikzjax-cache.outputs.cache-hit != 'true'
         run: ./prepare_assets.sh
 
-      - name: Install dependencies & Build Client for Pages
+      - name: Install Dependencies & Build Client for Pages
         working-directory: client
         run: |
           npm ci
