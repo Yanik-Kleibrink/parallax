@@ -11,16 +11,19 @@ import "@/styles/forms.scss";
 
 // Disable console.debug in production
 console.debug = () => {};
-
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <link rel="stylesheet" href="/fonts.css" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         {/* React Router doesn't inject this via the vite-pwa plugin by default. */}
-        <link rel="manifest" href="/manifest.webmanifest" />
+        <link
+          rel="manifest"
+          href={`${import.meta.env.BASE_URL}manifest.webmanifest`}
+        />
+        <link rel="stylesheet" href={`${import.meta.env.BASE_URL}fonts.css`} />
+
         <Meta />
         <Links />
       </head>

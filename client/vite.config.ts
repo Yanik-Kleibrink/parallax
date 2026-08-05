@@ -21,7 +21,8 @@ export default defineConfig({
       manifest: {
         name: "Parallax",
         short_name: "Parallax",
-        start_url: "/",
+        start_url: process.env.BASE_PATH || "/",
+        scope: process.env.BASE_PATH || "/",
         display: "standalone",
         background_color: "#ffffff",
         theme_color: "#ffffff",
