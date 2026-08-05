@@ -84,6 +84,10 @@ jobs:
       - name: Extract Client Archive
         run: |
           tar -xf client.tar.xz
+          # This is a trick to make github pages work when directly
+          # loading a dynamic route. In this case the server will open the
+          # 404.html after which react router takes over as expected.
+          cp client/index.html client/404.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v4
