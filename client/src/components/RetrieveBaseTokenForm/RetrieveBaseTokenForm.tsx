@@ -121,6 +121,7 @@ export function RetrieveBaseTokenForm({ base }: { base?: Base }) {
     const { token, ...props } = data;
 
     let group = null;
+    let jwt = null;
 
     if (token) {
       const url = `http${data.tls ? "s" : ""}://${data.domain}:${data.port}/access/${data.token}`;
@@ -134,7 +135,9 @@ export function RetrieveBaseTokenForm({ base }: { base?: Base }) {
         setError(`Request failed.`);
       }
 
-      group = await response.json();
+      let json = await response.json();
+      group = json.group;
+      jwt = json.jwt;
     } else {
       if (data.domain !== "localhost") {
         group = "public";
@@ -147,6 +150,7 @@ export function RetrieveBaseTokenForm({ base }: { base?: Base }) {
       group,
       lastConnected: Date.now(),
       configHash: 0,
+      jwt,
     });
 
     if (!base) {

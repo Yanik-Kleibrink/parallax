@@ -74,11 +74,17 @@ export function BaseInviteForm() {
     }
 
     const url = `http${base.tls ? "s" : ""}://${base.domain}:${base.port}/grant`;
+    const headers = new Headers({
+      "Content-Type": "application/json",
+    });
+
+    if (base.jwt) {
+      headers.set("Authorization", `Bearer ${base.jwt}`);
+    }
+
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         group: data.group,
         duration: data.duration,

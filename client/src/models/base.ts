@@ -9,4 +9,5 @@ export interface Base {
   port: number;
   tls: boolean;
   configHash: number;
+  jwt: string;
 }

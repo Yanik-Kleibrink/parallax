@@ -52,11 +52,24 @@ struct WheelConfig {
 #[derive(Deserialize, Serialize)]
 struct APIServerConfig {
     wheel: Option<WheelConfig>,
+
     public: Option<PublicConfig>,
+
     /// This is a list of admissible URLs from which the client stems
     /// from. It is necessary as otherwise CORS will block the
     /// requests from the client to the server.
     client_urls: Vec<String>,
+
+    /// This flag indicates whether tokens are also passed directly
+    /// to the client and not only stored in a secure http-only
+    /// cookie.
+    ///
+    /// Due to tracking preventions secure http-only cookies do not
+    /// work on Webkit. This flag allows to disable the secure
+    /// http-only cookie and pass the token directly to the
+    /// client. This is insecure and should only be used for
+    /// testing purposes.
+    insecure_tokens: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -321,6 +334,8 @@ impl Base {
                     .build(),
             );
         let config_hash = self.config.hash();
+        let insecure_tokens =
+            self.config.api_server.insecure_tokens.unwrap_or(false);
 
         // Create the server
         let mut server = HttpServer::new(move || {
@@ -328,6 +343,7 @@ impl Base {
             let secret = secret.clone();
             let token_cache = token_cache.clone();
             let config_hash = config_hash.clone();
+            let insecure_tokens = insecure_tokens.clone();
 
             App::new()
                 .wrap(
@@ -360,6 +376,7 @@ impl Base {
                 .app_data(Data::new(secret))
                 .app_data(token_cache.clone())
                 .app_data(Data::new(config_hash))
+                .app_data(Data::new(insecure_tokens))
                 .wrap(Logger::default())
                 .route("/ws", web::get().to(new_websocket))
                 .service(access_asset)

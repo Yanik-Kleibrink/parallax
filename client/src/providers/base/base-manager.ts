@@ -255,9 +255,15 @@ export class BaseManager {
 
     if (this.base.tls) {
       // wss is for TLS
-      this.ws = new WebSocket(`wss://${this.base.domain}:${this.base.port}/ws`);
+      this.ws = new WebSocket(
+        `wss://${this.base.domain}:${this.base.port}/ws`,
+        this.base.jwt ? [this.base.jwt] : undefined
+      );
     } else {
-      this.ws = new WebSocket(`ws://${this.base.domain}:${this.base.port}/ws`);
+      this.ws = new WebSocket(
+        `ws://${this.base.domain}:${this.base.port}/ws`,
+        this.base.jwt ? [this.base.jwt] : undefined
+      );
     }
 
     this.ws.onopen = () => {
