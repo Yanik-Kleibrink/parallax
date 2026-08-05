@@ -668,8 +668,16 @@ export class BaseManager {
       } else {
         url = `http://${this.base.domain}:${this.base.port}/items/${key}/${assetType}`;
       }
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+
+      if (this.base.jwt) {
+        headers.set("Authorization", `Bearer ${this.base.jwt}`);
+      }
       const response = await fetch(url, {
         method: "GET",
+        headers,
         credentials: "include",
       });
       if (!response.ok) {
