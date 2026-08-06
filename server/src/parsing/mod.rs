@@ -13,7 +13,7 @@ use crate::parsing::initial_parser::{
     get_content_in_article, render_title,
 };
 
-use tracing::{debug, instrument};
+use tracing::{debug, error, instrument};
 
 use std::collections::HashSet;
 use std::error::Error;
@@ -205,6 +205,10 @@ pub struct InternalItem {
     /// available to obtain the title of the item.
     title: Option<Arc<Vec<StructuredContent>>>,
 
+    /// The default export configuration that does not yet include
+    /// the local DMOs of the item.
+    default_export_config: HTMLExportConfiguration,
+
     /// The export configuration
     export_config: HTMLExportConfiguration,
 
@@ -239,7 +243,7 @@ impl InternalItem {
         key: &str,
         path: &PathBuf,
         base_path: Arc<PathBuf>,
-        export_config: HTMLExportConfiguration,
+        export_config: &HTMLExportConfiguration,
     ) -> Self {
         InternalItem {
             key: key.to_string(),
@@ -257,7 +261,8 @@ impl InternalItem {
             flavor: ItemFlavor::Constituent,
             hash_export: 0,
             title: None,
-            export_config: export_config,
+            default_export_config: export_config.clone(),
+            export_config: export_config.clone(),
             export: None,
             citation_information: None,
             pdf: InternalItemAsset::new(),
@@ -266,8 +271,40 @@ impl InternalItem {
         }
     }
 
+    /// This function generates the export configuration for the item
+    /// by adding the local DMOs to the default export configuration.
+    fn generate_export_config(
+        &mut self,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut export_config = self.default_export_config.clone();
+        export_config.latex =
+            self.default_export_config.latex.add_dmos(
+                &mut self
+                    .metadata
+                    .dmos
+                    .iter()
+                    .map(String::from)
+                    .into_iter(),
+            )?;
+        export_config.tikz =
+            self.default_export_config.tikz.add_dmos(
+                &mut self
+                    .metadata
+                    .dmos
+                    .iter()
+                    .map(String::from)
+                    .into_iter(),
+            )?;
+        self.export_config = export_config.clone();
+
+        Ok(())
+    }
+
     /// This function checks whether the export configuration needs to
     /// be updated.
+    ///
+    /// Note that the default configurations are compared as these are
+    /// the configurations passed to an item.
     ///
     /// This comparison is inexpensive.
     #[instrument(skip(self), fields(self.key = %self.key))]
@@ -275,7 +312,7 @@ impl InternalItem {
         &self,
         new_export_config: &HTMLExportConfiguration,
     ) -> bool {
-        self.export_config != *new_export_config
+        self.default_export_config != *new_export_config
     }
 
     /// Sets the new html export config (including bibliography and
@@ -286,25 +323,10 @@ impl InternalItem {
         new_export_config: HTMLExportConfiguration,
     ) -> Result<(), Box<dyn Error>> {
         debug!("Adding a new export config");
-        let mut new_export_config = new_export_config.clone();
-        new_export_config.latex = new_export_config.latex.add_dmos(
-            &mut self
-                .metadata
-                .dmos
-                .iter()
-                .map(String::from)
-                .into_iter(),
-        )?;
-        new_export_config.tikz = new_export_config.tikz.add_dmos(
-            &mut self
-                .metadata
-                .dmos
-                .iter()
-                .map(String::from)
-                .into_iter(),
-        )?;
-        self.export_config = new_export_config;
+        self.default_export_config = new_export_config.clone();
+        self.generate_export_config()?;
         self.export = None;
+        self.title = None;
         self.citation_information = None;
 
         self.compute_hash_export();
@@ -326,6 +348,10 @@ impl InternalItem {
             _ => new_org_content.into(),
         };
 
+        self.export = None;
+        self.title = None;
+        self.citation_information = None;
+
         let old_included_items = self.metadata.included_items.clone();
         let old_dmos = self.metadata.dmos.clone();
         self.initial_parse();
@@ -341,9 +367,12 @@ impl InternalItem {
         }
 
         if old_dmos != self.metadata.dmos {
-            debug!("Updating export config with new dmos");
-            self.update_export_config(self.export_config.clone())
-                .unwrap();
+            match self.generate_export_config() {
+                Ok(_) => debug!("Export config updated successfully"),
+                Err(e) => {
+                    error!("Failed to update export config: {}", e)
+                }
+            }
         }
 
         self.compute_hash_export();

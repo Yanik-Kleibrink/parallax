@@ -212,6 +212,7 @@ pub async fn new_websocket(
                 }
                 Either::Right(ItemChange::Remove(name)) => {
                     let _ = info_span!("Websocket Push", name);
+
                     let item_information =
                         ItemInformation::Remove(name);
 

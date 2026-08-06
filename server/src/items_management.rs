@@ -305,7 +305,7 @@ impl ItemDatabase {
                 name,
                 path,
                 self.base_path.clone(),
-                export_config,
+                &export_config,
             );
             item.update_org_content(&org);
 
@@ -506,11 +506,8 @@ impl ItemDatabase {
             }
 
             drop(item); // Release the read lock before acquiring a write lock.
-            debug!(
-                "No HTML export present, attempting to export now."
-            );
             if let Some(mut item) = self.db.get_mut(name) {
-                debug!("Exporting item {name} to HTML.");
+                debug!("Exporting item to HTML.");
                 if item
                     .item
                     .update_export_config_necessary(&export_config)
@@ -520,6 +517,7 @@ impl ItemDatabase {
                         .ok()?;
                 }
                 item.item.export().ok()?;
+
                 return item.item.external_item().ok().clone();
             } else {
                 return None;

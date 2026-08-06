@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
@@ -473,7 +473,10 @@ impl Base {
                                                         }
                                                         _ => {}
                                                     }
-                                                }
+                                                },
+                                                notify::event::ModifyKind::Data(_) => {
+                                                    handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
+                                                },
                                                 _ => {}
                                             }
                                         }
