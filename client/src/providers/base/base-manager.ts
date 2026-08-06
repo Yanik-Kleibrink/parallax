@@ -371,8 +371,10 @@ export class BaseManager {
         });
       } else if ("Remove" in item_information) {
         console.info("Removing item from database:", item_information.Remove);
-        // Remove the item from the database.
+        // Remove the item from the database and graph managers.
         removeItem(this.base.name, item_information.Remove);
+        this.graphManager?.removeItem(item_information.Remove);
+        this.backupGraphManager?.removeItem(item_information.Remove);
       } else if ("Update" in item_information) {
         const item = item_information.Update;
         this.requested_items.delete(item.key);

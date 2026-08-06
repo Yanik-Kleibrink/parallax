@@ -213,6 +213,7 @@ impl ItemDatabase {
     /// access rights of all children of the removed item.
     #[instrument(skip(self), fields(name = %name))]
     pub fn remove(&self, name: &str) -> Result<(), Error> {
+        info!("Removing item");
         if let Some((key, item_with_access)) = self.db.remove(name) {
             // Add the pdfs of the removed item to the unmatched pdfs.
             self.unmatched_pdfs.insert(
@@ -249,15 +250,24 @@ impl ItemDatabase {
     /// Insert or update an item.
     ///
     /// This will also insert the default html_exporter everywhere.
-    #[instrument(skip(self, org), fields(name = %name, path = %path.display()))]
+    #[instrument(skip(self), fields(name = %name, path = %path.display()))]
     pub fn add(
         &self,
         name: &str,
         path: &PathBuf,
-        org: &str,
     ) -> Result<(), Error> {
+        info!("Adding item");
         let export_config =
             self.html_export_config.read().unwrap().clone();
+
+        // Get content of org file.
+        let org = match fs::read_to_string(path) {
+            Ok(org) => org,
+            Err(err) => {
+                error!(error = %err, "Failed to read org file");
+                return Err(err);
+            }
+        };
 
         // Check if item already exists.
         if let Some(mut item_with_access) = self.db.get_mut(name) {
@@ -282,7 +292,7 @@ impl ItemDatabase {
                 item_with_access.item.metadata.access_rights.clone();
 
             // Update the item.
-            item_with_access.item.update_org_content(org);
+            item_with_access.item.update_org_content(&org);
 
             if item_with_access.item.metadata.access_rights
                 != old_access_rights
@@ -297,7 +307,7 @@ impl ItemDatabase {
                 self.base_path.clone(),
                 export_config,
             );
-            item.update_org_content(org);
+            item.update_org_content(&org);
 
             self.db.insert(name.into(), ItemWithAccess::new(item));
 

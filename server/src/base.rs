@@ -450,11 +450,37 @@ impl Base {
                         match result {
                             Ok(events) =>
                                 for event in events {
-                                    if event.event.kind.is_modify() || event.event.kind.is_create() || event.event.kind.is_remove() {
-                                        for path in event.event.paths {
-                                            // Don't canonicalize the path here, as it may not exist anymore (in case of a remove event).
-                                           handle_file_update(items.clone(), &path, if event.event.kind.is_remove() { ItemUpdateEvent::Remove } else { ItemUpdateEvent::Update });
+                                    match event.event.kind {
+                                        notify::EventKind::Create(_) => {
+                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
                                         }
+                                        notify::EventKind::Modify(subkind) => {
+                                            match subkind {
+                                                notify::event::ModifyKind::Name(rename_kind) => {
+                                                    match rename_kind {
+                                                        notify::event::RenameMode::To => {
+                                                            info!(path=?event.event.paths[0], "File renamed to");
+                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
+                                                        }
+                                                        notify::event::RenameMode::From => {
+                                                            info!(path=?event.event.paths[0], "File renamed from");
+                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
+                                                        }
+                                                        notify::event::RenameMode::Both => {
+                                                            info!(from=?event.event.paths[0], to=?event.event.paths[1], "File renamed");
+                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
+                                                            handle_file_update(items.clone(), &event.event.paths[1], ItemUpdateEvent::Update);
+                                                        }
+                                                        _ => {}
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                        }
+                                        notify::EventKind::Remove(_) => {
+                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
+                                        }
+                                        _ => {}
                                     }
                                 }
                             Err(errs) => {
@@ -478,75 +504,7 @@ impl Base {
             }
         };
 
-        // ignore failures
         debouncer.watch(canonical_root, RecursiveMode::Recursive)?;
-        //    .ok();
-        // The directories are manually walked to ensure that the
-        // watcher passes over files that do not have the correct
-        // permissions
-        /*
-        for entry in WalkDir::new(&self.root_path)
-                .into_iter()
-                .filter_entry(|entry| {
-                    // Always allow files to be yielded
-                    if !entry.file_type().is_dir() {
-                        return true;
-                    }
-
-                    // Check if file starts with a dot and ignore it if so
-                    if entry
-                        .path()
-                        .file_name()
-                        .and_then(OsStr::to_str)
-                        .map(|name| name.starts_with('.'))
-                        .unwrap_or(false)
-                    {
-                        info!(
-                            path = ?entry.path(),
-                            "Skipping directory (hidden)"
-                        );
-                        return false;
-                    }
-
-                    let parent = match entry.path().parent() {
-                        Some(p) => p,
-                        None => return false,
-                    };
-
-                    // The parent is checked for notes_server_ignore so that the server can detect updates to the presence of notes_server_ignore files
-                    let parent = match parent.canonicalize() {
-                        Ok(p) => p,
-                        Err(_) => return false,
-                    };
-
-                    // Ensure the directory is inside the root path.
-                    // If it is not do not consider .notes_server_ignore
-                    if !parent.starts_with(&canonical_root) {return true};
-
-                    // Check for `.notes_server_ignore` in the parent directory
-                    let terminate = parent.join(".notes_server_ignore");
-                    if terminate.exists() {
-                        info!(
-                            path = ?entry.path(),
-                            "Skipping directory (found .notes_server_ignore)",
-                        );
-                    }
-                    !terminate.exists()
-                })
-                .filter_map(Result::ok)
-                .filter(|e| e.file_type().is_dir())
-            {
-                // Skip unreadable dirs
-                if std::fs::read_dir(entry.path()).is_err() {
-                    continue;
-                }
-
-                debug!(path = ?entry.path(), "Watching directory.");
-                debouncer
-                    .watch(entry.path(), RecursiveMode::NonRecursive)
-                    .ok(); // ignore failures
-            }
-        */
         self.file_watcher = Some(debouncer);
 
         Ok(())
@@ -578,64 +536,6 @@ impl Base {
     }
 }
 
-fn get_name_content(path: &Path) -> Option<(String, String)> {
-    if let Some(item_raw_name) = path.file_stem() {
-        if let Some(item_raw_name_str) = item_raw_name.to_str() {
-            let mut item_raw_name_str =
-                String::from(item_raw_name_str);
-            // For base.org and tasks.org prepend the next higher
-            // directory name to make the name unique:
-            if matches!(item_raw_name_str.as_str(), "base" | "tasks")
-            {
-                warn!(
-                    path = ?path,
-                    "This behavior is deprecated and will be removed in a future version. Please rename the file to something else to avoid name collisions."
-                );
-                if let Some(parent_name) =
-                    path.parent().map(|p| p.file_stem()).flatten()
-                {
-                    if let Some(parent_name) = parent_name.to_str() {
-                        item_raw_name_str = String::from(parent_name)
-                            + "_"
-                            + &item_raw_name_str;
-                    } else {
-                        warn!(
-                            path = ?path,
-                            "Couldn't extract parent. This is very likely to lead to the overwritting of other base.org or tasks.org files!"
-                        );
-                    }
-                } else {
-                    warn!(
-                        path = ?path,
-                        "Couldn't extract parent. This is very likely to lead to the overwritting of other base.org or tasks.org files!"
-                    );
-                }
-            }
-
-            // Try to read the file
-            match fs::read_to_string(path) {
-                Err(err) => {
-                    error!(
-                        path = ?path,
-                        error = %err, "Reading item (org) file failed"
-                    );
-                    None
-                }
-                Ok(src) => Some((item_raw_name_str, src)),
-            }
-        } else {
-            error!(
-                ?item_raw_name,
-                "Could not extract string from file stem"
-            );
-            None
-        }
-    } else {
-        error!(path = ?path, "Could not extract file stem");
-        None
-    }
-}
-
 /// An event that indicates whether an item was updated or removed.
 enum ItemUpdateEvent {
     Update,
@@ -649,97 +549,99 @@ fn handle_file_update(
     path: &PathBuf,
     event: ItemUpdateEvent,
 ) {
-    if path.exists() && path.is_file() {
-        match path.extension().and_then(OsStr::to_str) {
-            Some("org") => {
-                debug!(
-                    path=?path,
-                    "Modified or created org file"
-                );
-                if let Some((name, content)) = get_name_content(&path)
-                {
-                    match event {
-                        ItemUpdateEvent::Update => {
-                            if let Err(err) =
-                                items.add(&name, &path, &content)
-                            {
-                                error!(
-                                    path=?path,
-                                    name=?name,
-                                    error=%err, "Adding item to database failed"
-                                );
-                            }
-                        }
-                        ItemUpdateEvent::Remove => {
-                            let _ = items.remove(&name);
-                        }
-                    }
-                }
-            }
-            Some("bib") => {
-                let name = path
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| String::from("unknown"));
-                match event {
-                    ItemUpdateEvent::Update => {
-                        items.add_bib(&name, &path)
-                    }
-                    ItemUpdateEvent::Remove => {
-                        items.drop_bib(&name);
-                    }
-                }
-            }
-            Some("pdf") => {
-                let name = path
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| String::from("unknown"));
-
-                match event {
-                    ItemUpdateEvent::Update => {
-                        if path.exists() {
+    match path.extension().and_then(OsStr::to_str) {
+        Some("org") => {
+            let name = path
+                .file_stem()
+                .and_then(OsStr::to_str)
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| String::from("unknown"));
+            match event {
+                ItemUpdateEvent::Update => {
+                    match items.add(&name, &path) {
+                        Ok(_) => {
                             debug!(
                                 path=?path,
-                                "Modified or created pdf file"
+                                "Modified or created org file"
                             );
-                            items.register_pdf(&name, &path);
+                        }
+                        Err(e) => {
+                            error!(
+                                path=?path,
+                                error=%e,
+                                "Failed to add org file to items database"
+                            );
                         }
                     }
-                    ItemUpdateEvent::Remove => {
+                }
+                ItemUpdateEvent::Remove => {
+                    let _ = items.remove(&name);
+                }
+            }
+        }
+        Some("bib") => {
+            let name = path
+                .file_stem()
+                .and_then(OsStr::to_str)
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| String::from("unknown"));
+            match event {
+                ItemUpdateEvent::Update => {
+                    items.add_bib(&name, &path)
+                }
+                ItemUpdateEvent::Remove => {
+                    items.drop_bib(&name);
+                }
+            }
+        }
+        Some("pdf") => {
+            let name = path
+                .file_stem()
+                .and_then(OsStr::to_str)
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| String::from("unknown"));
+
+            match event {
+                ItemUpdateEvent::Update => {
+                    if path.exists() {
                         debug!(
                             path=?path,
-                            "Removed pdf file"
+                            "Modified or created pdf file"
                         );
-                        items.drop_pdf(&name, &path);
+                        items.register_pdf(&name, &path);
                     }
                 }
-                debug!(
-                    path=?path,
-                    "Detected modified or created pdf file"
-                );
-                items.register_pdf(&name, &path);
+                ItemUpdateEvent::Remove => {
+                    debug!(
+                        path=?path,
+                        "Removed pdf file"
+                    );
+                    items.drop_pdf(&name, &path);
+                }
             }
-            Some("ignore_parallax") => {
-                error!(
-                    "Updating the file watcher due to changes in .ignore_parallax is not yet supported!"
-                );
-            }
-            Some(ext) => {
-                info!(
-                    path=?path,
-                    extension=ext,
-                    "Detected modified file with unsupported extension"
-                );
-            }
-            None => {
-                warn!(
-                    path=?path,
-                    "File extension could not be determined for modified file"
-                );
-            }
+            debug!(
+                path=?path,
+                "Detected modified or created pdf file"
+            );
+            items.register_pdf(&name, &path);
+        }
+        Some("ignore_parallax") => {
+            error!(
+                "Updating the file watcher due to changes in .ignore_parallax is not yet supported!"
+            );
+        }
+        Some(ext) => {
+            info!(
+                path=?path,
+                extension=ext,
+                "Detected modified file with unsupported extension"
+            );
+        }
+        None => {
+            warn!(
+                path=?path,
+                "File extension could not be determined for modified file"
+            );
         }
     }
 }
