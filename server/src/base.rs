@@ -552,6 +552,17 @@ fn handle_file_update(
     path: &PathBuf,
     event: ItemUpdateEvent,
 ) {
+    // Completely ignore hidden files and directories.
+    if path.components().any(|comp| {
+        comp.as_os_str().to_string_lossy().starts_with('.')
+    }) {
+        debug!(
+            path=?path,
+            "Ignoring hidden file or directory"
+        );
+        return;
+    }
+
     match path.extension().and_then(OsStr::to_str) {
         Some("org") => {
             let name = path
