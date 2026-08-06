@@ -78,6 +78,12 @@ export type StructuredContent =
       };
     }
   | {
+      Code: {
+        content: string;
+        language: string | null;
+      };
+    }
+  | {
       Citation: {
         post_script: string;
         pre_script: string;

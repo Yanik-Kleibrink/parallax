@@ -128,45 +128,51 @@ h6 {
       0 12px 32px rgba(0, 0, 0, 0.07);
   }
 
-  &__block {
-    &--definition,
-    &--corollary,
-    &--lemma,
-    &--proposition,
-    &--theorem,
-    &--remark,
-    &--example,
-    &--notation,
-    &--intuition,
-    &--question,
-    &--conjecture,
-    &--convention {
-      position: relative;
+  &__block,
+  &__code {
+    position: relative;
 
-      --accent: #8e8e93;
+    --accent: #8e8e93;
 
-      padding: 1rem 1.25rem;
-      margin-block: 1rem;
+    padding: 1rem 1.25rem;
+    margin-block: 1rem;
 
-      border-left: 3px solid var(--accent);
-      border-radius: 14px;
+    border-left: 3px solid var(--accent);
+    border-radius: 14px;
 
-      background: color-mix(in oklab, white 94%, var(--accent));
-      color: #1d1d1f;
+    background: color-mix(in oklab, white 94%, var(--accent));
+    color: #1d1d1f;
+  }
 
-      &::before {
-        display: block;
-        margin-bottom: 0.75rem;
+  &__code__language,
+  &__block::before {
+    display: block;
+    margin-bottom: 0.75rem;
 
-        font-size: 0.82rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        line-height: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
 
-        color: var(--accent);
+    color: var(--accent);
+  }
+
+  &__code {
+    &__copy-button {
+      all: unset;
+
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+
+      &:hover,
+      &:focus {
+        transform: scale(1.05);
       }
     }
+  }
 
+  &__block {
     /* Accent colors */
 
     &--definition {

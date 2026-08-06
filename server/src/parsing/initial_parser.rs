@@ -715,7 +715,7 @@ mod tests {
         key: String,
         metadata: ItemMetadata,
         flavor: ItemFlavor,
-        title: Option<Vec<StructuredContent>>,
+        title: Option<Arc<Vec<StructuredContent>>>,
     }
 
     macro_rules! assert_org_parse {
@@ -763,11 +763,12 @@ mod tests {
                 ],
                 dmos: vec!["check".into()],
                 dump_bibliography: None,
+                referenced_citations: HashSet::new(),
             },
             flavor: ItemFlavor::Knowledge,
-            title: Some(vec![StructuredContent::Text(
+            title: Some(Arc::new(vec![StructuredContent::Text(
                 "Test Title".into()
-            )]),
+            )])),
         }
     );
 
@@ -796,6 +797,7 @@ test
                 ],
                 dmos: vec!["check".into()],
                 dump_bibliography: None,
+                referenced_citations: HashSet::new(),
             },
             flavor: ItemFlavor::Article {
                 read_state: ArticleState::New,
@@ -820,6 +822,7 @@ test"#,
                 included_items: vec![],
                 dmos: vec![],
                 dump_bibliography: None,
+                referenced_citations: HashSet::new(),
             },
             flavor: ItemFlavor::Article {
                 read_state: ArticleState::New,
@@ -844,6 +847,7 @@ test"#,
                 included_items: vec![],
                 dmos: vec![],
                 dump_bibliography: None,
+                referenced_citations: HashSet::new(),
             },
             flavor: ItemFlavor::GeneralReference,
             title: None,

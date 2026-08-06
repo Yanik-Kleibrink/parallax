@@ -60,6 +60,12 @@ pub enum StructuredContent {
         label: Option<String>,
     },
 
+    /// A code block.
+    Code {
+        language: Option<String>,
+        content: String,
+    },
+
     /// A citation.
     ///
     /// The client is responsible for rendering and linking the

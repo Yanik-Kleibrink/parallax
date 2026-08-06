@@ -853,6 +853,16 @@ impl HTMLExportConfiguration {
                                 .collect::<Vec<_>>(),
                         }];
                     }
+                    SOURCE_BLOCK => {
+                        let s = cast!(SourceBlock);
+
+                        return vec![StructuredContent::Code {
+                            content: s.value(),
+                            language: s
+                                .language()
+                                .map(|l| l.to_string()),
+                        }];
+                    }
 
                     // All others including list items fall through
                     // and only their children are processed.
@@ -1456,5 +1466,20 @@ Hello!
                 key: "12398465853884071036".to_string(),
             }
         ]
+    );
+
+    assert_org_parse!(
+        test_parse_code_block_with_language,
+        r#"
+#+begin_src python
+for i in range(10):
+    print(i)
+#+end_src
+"#,
+        vec![StructuredContent::Code {
+            content: "for i in range(10):\n    print(i)\n"
+                .to_string(),
+            language: Some("python".to_string()),
+        }]
     );
 }

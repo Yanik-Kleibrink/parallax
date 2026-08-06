@@ -9,6 +9,8 @@ import {
   useLayoutEffect,
   type JSX,
 } from "react";
+import { Copy } from "react-bootstrap-icons";
+import { Highlight, themes } from "prism-react-renderer";
 
 import "./StructuredContentRenderer.scss";
 
@@ -160,6 +162,47 @@ export function StructuredContentRenderer({
             context={{ ...context, depth: context.depth + 1 }}
           />
         ))}
+      </div>
+    );
+  }
+  if ("Code" in content) {
+    return (
+      <div className="structured-content__code">
+        {content.Code.language && (
+          <div className="structured-content__code__language">
+            {content.Code.language.toUpperCase()}
+          </div>
+        )}
+        <Highlight
+          theme={themes.oneLight}
+          code={content.Code.content.trim()}
+          language={content.Code.language ? content.Code.language : "text"}
+        >
+          {({ className, style, tokens, getLineProps, getTokenProps }) => (
+            <pre className={`${className}`} style={style}>
+              {tokens.map((line, i) => (
+                <div key={i} {...getLineProps({ line })}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </pre>
+          )}
+        </Highlight>
+        <button
+          className="structured-content__code__copy-button"
+          onClick={() => {
+            navigator.clipboard
+              .writeText(content.Code.content.trim())
+              .catch((err) => {
+                console.error("Failed to copy code: ", err);
+                alert("Failed to copy code to clipboard.");
+              });
+          }}
+        >
+          <Copy />
+        </button>
       </div>
     );
   }
