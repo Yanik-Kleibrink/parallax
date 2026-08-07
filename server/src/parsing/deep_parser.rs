@@ -894,7 +894,8 @@ impl HTMLExportConfiguration {
     /// into a BibTeX file at the specified path.
     ///
     /// @param path The path to the BibTeX file where the bibliography
-    /// entries will be written. @param keys A vector of keys
+    /// entries will be written.
+    /// @param keys A vector of keys
     /// corresponding to the bibliography entries to be dumped.
     pub fn dump_bibliography(
         &self,

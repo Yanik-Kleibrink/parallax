@@ -13,7 +13,7 @@ use crate::parsing::initial_parser::{
     get_content_in_article, render_title,
 };
 
-use tracing::{debug, error, instrument};
+use tracing::{debug, error, info, instrument};
 
 use std::collections::HashSet;
 use std::error::Error;
@@ -353,12 +353,17 @@ impl InternalItem {
         self.citation_information = None;
 
         let old_included_items = self.metadata.included_items.clone();
+        let old_dump_bibliography =
+            self.metadata.dump_bibliography.clone();
         let old_dmos = self.metadata.dmos.clone();
         self.initial_parse();
 
-        if old_included_items != self.metadata.included_items {
+        if old_included_items != self.metadata.included_items
+            || old_dump_bibliography
+                != self.metadata.dump_bibliography
+        {
             if let Some(path) = &self.metadata.dump_bibliography {
-                debug!("Dumping bibliography to {}", path.display());
+                info!(path = ?path.display(), "Dumping bibliography");
                 self.export_config.dump_bibliography(
                     path,
                     &self.metadata.included_items,

@@ -426,16 +426,25 @@ pub fn extract_metadata(
         if let Some(m) = capture.name("path") {
             let path = org_content[m.start()..m.end()].trim();
 
+            info!(path = path, "Found dump bibliography specifier");
+
             dump_bibliography = match path {
                 _ if path.starts_with("/") => {
-                    // This also checks for existance.
-                    base_path.join(path).canonicalize().ok()
+                    Some(base_path.join(path))
                 }
                 _ => {
                     // This also checks for existance and handles the
                     // case of no argument being specified in
                     // dump_bibliography.
-                    item_path.join(path).canonicalize().ok()
+                    if let Some(parent_dir) = item_path.parent() {
+                        Some(parent_dir.join(path))
+                    } else {
+                        warn!(
+                            path = path,
+                            "Could not determine dump bibliography path. Ignoring."
+                        );
+                        None
+                    }
                 }
             };
 
@@ -443,7 +452,8 @@ pub fn extract_metadata(
             // a directory. This also handles the case of
             // no argument being specified in dump_bibliography.
             if let Some(ref path) = dump_bibliography
-                && !path.is_file()
+                && path.extension()
+                    != Some(std::ffi::OsStr::new("bib"))
             {
                 dump_bibliography =
                     Some(path.join(DEFAULT_BIBLIOGRAPHY_FILENAME));
