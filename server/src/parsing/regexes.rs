@@ -39,7 +39,7 @@ pub static FIND_DUMP_BIBLIOGRAPHY: LazyLock<Regex> =
         Regex::new(r"(?m)^#\+dump_bibliography:(?<path>.*)").unwrap()
     });
 pub static FIND_DECLARE_MATH_OPERATORS: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"#\+dmo:(?<dmo>.*)").unwrap());
+    LazyLock::new(|| Regex::new(r"(?m)^#\+dmo:(?<dmo>.*)").unwrap());
 pub static FIND_ASSETS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?m)^#\+(?<type>pdf|video|html):(?<assets>.*)")
         .unwrap()
