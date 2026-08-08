@@ -166,7 +166,10 @@ pub async fn access_asset(
                 Ok(HttpResponse::NotFound().body("PDF not found"))
             }
         }
-        (AssetType::Html, Some(tail)) => {
+        (AssetType::Html, tail) => {
+            let tail =
+                tail.unwrap_or_else(|| PathBuf::from("index.html"));
+
             // Access the HTML asset.
             if let Some(base_path) = items
                 .retrieve_html_base_path(&claim.name, "wheel")
