@@ -147,6 +147,43 @@ impl ItemDatabase {
             ));
         }
 
+        if !dump_path.exists() && dump_path.parent().is_none() {
+            if dump_path.parent().is_none() {
+                error!(
+                    dump_path = ?dump_path.display(),
+                    "Dump path is not a valid file path",
+                );
+                return Err(Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!(
+                        "Dump path {} is not a valid file path",
+                        dump_path.display()
+                    ),
+                ));
+            } else {
+                info!(
+                    dump_path = ?dump_path.display(),
+                    "Dump path does not exist, creating it",
+                );
+                // Create the file
+                if let Err(err) = fs::File::create(dump_path) {
+                    error!(
+                        dump_path = ?dump_path.display(),
+                        error = %err,
+                        "Failed to create dump file",
+                    );
+                    return Err(Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!(
+                            "Failed to create dump file {}: {}",
+                            dump_path.display(),
+                            err
+                        ),
+                    ));
+                }
+            }
+        }
+
         let dump_path = dump_path.canonicalize();
         if let Ok(dump_path) = dump_path {
             let self_clone = Arc::clone(&self);
