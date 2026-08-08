@@ -253,6 +253,20 @@ export class BaseManager {
       `Attempting to connect to WebSocket at ws://${this.base.domain}:${this.base.port}/ws`
     );
 
+    // Don't create duplicate sockets if already connecting or open
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.CONNECTING ||
+        this.ws.readyState === WebSocket.OPEN)
+    ) {
+      return;
+    }
+
+    // Clean up dead/closing sockets first
+    if (this.ws) {
+      this.ws.close();
+    }
+
     if (this.base.tls) {
       // wss is for TLS
       this.ws = new WebSocket(

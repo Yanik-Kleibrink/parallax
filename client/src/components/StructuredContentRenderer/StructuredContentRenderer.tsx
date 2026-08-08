@@ -132,12 +132,21 @@ export function StructuredContentRenderer({
     return <span className="structured-content__text">{content.Text}</span>;
   }
   if ("LaTeX" in content) {
-    return (
-      <span
-        className="structured-content__latex"
-        dangerouslySetInnerHTML={{ __html: content.LaTeX.html }}
-      />
-    );
+    if (content.LaTeX.display === "Display") {
+      return (
+        <div
+          className="structured-content__latex structured-content__latex--display"
+          dangerouslySetInnerHTML={{ __html: content.LaTeX.html }}
+        />
+      );
+    } else {
+      return (
+        <span
+          className="structured-content__latex structured-content__latex--inline"
+          dangerouslySetInnerHTML={{ __html: content.LaTeX.html }}
+        />
+      );
+    }
   }
   if ("Block" in content) {
     return (

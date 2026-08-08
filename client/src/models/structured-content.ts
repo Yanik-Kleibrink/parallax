@@ -69,6 +69,7 @@ export type StructuredContent =
   | {
       LaTeX: {
         html: string;
+        display: "Inline" | "Display";
       };
     }
   | {

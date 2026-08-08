@@ -50,6 +50,7 @@ pub enum StructuredContent {
     Text(String),
     LaTeX {
         html: String,
+        display: DisplayMode,
     },
 
     /// A block element, e.g., a theorem, definition, proof, etc.
@@ -143,6 +144,16 @@ pub struct Tag {
     /// These are the keys of the subitems that are nested inside
     /// directly in this tag.
     pub subitems: Vec<String>,
+}
+
+/// The display mode of a LaTeX element, either inline or display.
+#[derive(Serialize, Debug, PartialEq)]
+pub enum DisplayMode {
+    /// Includes only inline math.
+    Inline,
+
+    /// Includes both tikz and display math.
+    Display,
 }
 
 /// The target of a link, either a URL or an item.

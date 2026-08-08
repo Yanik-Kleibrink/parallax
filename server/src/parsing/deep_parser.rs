@@ -3,8 +3,8 @@ use crate::html::latex::HTMLLatexExport;
 use crate::html::tikz::HTMLTikzExport;
 use crate::models::item::CitationInformation;
 use crate::models::structured_content::{
-    BlockFlavor, LinkTarget, ProgressState, StructuredContent,
-    TQFFlavor, Tag,
+    BlockFlavor, DisplayMode, LinkTarget, ProgressState,
+    StructuredContent, TQFFlavor, Tag,
 };
 use crate::parsing::regexes::*;
 
@@ -149,6 +149,7 @@ impl HTMLExportConfiguration {
 
                 result.push(StructuredContent::LaTeX {
                     html: rendered_latex.to_string(),
+                    display: DisplayMode::Inline,
                 });
             }
 
@@ -172,6 +173,7 @@ impl HTMLExportConfiguration {
 
                 result.push(StructuredContent::LaTeX {
                     html: rendered_latex.to_string(),
+                    display: DisplayMode::Display,
                 });
             }
 
@@ -856,7 +858,8 @@ impl HTMLExportConfiguration {
                                         |err| {
                                             warn!(error=%err, "Exporting latex failed");
                                             format!("<pre class='red tikz--error'>{}</pre>", err)
-                                        })
+                                        }),
+                                    display: DisplayMode::Display,
                             }
                             ];
                         } else {
@@ -865,7 +868,8 @@ impl HTMLExportConfiguration {
                                     |err| {
                                         warn!(error=%err, "Exporting latex failed");
                                         "<span class='red'>Error rendering latex</span>".to_string()
-                                    })
+                                    }),
+                                display: DisplayMode::Display,
                             }];
                         }
                     }
@@ -1113,7 +1117,8 @@ pub mod tests {
                     "This is a LaTeX inline formula: ".to_string()
                 ),
                 StructuredContent::LaTeX {
-                    html: "E=mc^2".to_string()
+                    html: "E=mc^2".to_string(),
+                    display: DisplayMode::Inline
                 },
                 StructuredContent::Text(".".to_string()),
             ]
@@ -1129,7 +1134,8 @@ pub mod tests {
                     "This is a LaTeX display formula: ".to_string()
                 ),
                 StructuredContent::LaTeX {
-                    html: "E=mc^2".to_string()
+                    html: "E=mc^2".to_string(),
+                    display: DisplayMode::Display
                 },
                 StructuredContent::Text(".".to_string()),
             ]
@@ -1154,7 +1160,8 @@ pub mod tests {
   A \arrow[r] \arrow[d] & B \arrow[d] \\
   C \arrow[r] & D
 \end{tikzcd}"#
-                    .to_string()
+                    .to_string(),
+                display: DisplayMode::Display
             },
         ]
     );
@@ -1451,7 +1458,8 @@ Hello!
   2 + 2
   \end{align*}
 "#
-                    .to_string()
+                    .to_string(),
+                    display: DisplayMode::Display
                 }
             ]]
         }]

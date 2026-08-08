@@ -80,6 +80,16 @@ h6 {
     }
   }
 
+  &__latex {
+    &--display {
+      display: flex;
+      justify-content: center;
+
+      max-width: 100%;
+      overflow-x: auto;
+    }
+  }
+
   &__tqf {
     position: absolute;
     left: calc(100% + 2.5rem);
