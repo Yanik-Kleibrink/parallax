@@ -120,14 +120,26 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout the repo so git context exists
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Generate Tag, Date, and Repo Context
         id: vars
         run: |
-          TAG_NAME="nightly-$(date -u +'%Y%m%d')"
+          TAG_NAME="nightly"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+
+      - name: Update Nightly Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f ${{ steps.vars.outputs.tag }}
+          git push origin ${{ steps.vars.outputs.tag }} --force
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
