@@ -9,7 +9,7 @@ import {
   useLayoutEffect,
   type JSX,
 } from "react";
-import { Copy } from "react-bootstrap-icons";
+import { Copy, ArrowRight } from "react-bootstrap-icons";
 import { Highlight, themes } from "prism-react-renderer";
 import Prism from "prismjs";
 
@@ -141,6 +141,7 @@ export function StructuredContentRenderer({
     return (
       <div
         className={`structured-content__block structured-content__block--${typeof content.Block.flavor == "string" ? content.Block.flavor.toLowerCase() : "unknown"}`}
+        id={content.Block.label ? `${content.Block.label}` : undefined}
       >
         {content.Block.name && (
           <div className="structured-content__block__name">
@@ -270,7 +271,41 @@ export function StructuredContentRenderer({
     );
   }
   if ("Link" in content) {
-    return <>{/* Not yet implemented */}</>;
+    return (
+      <a
+        className="structured-content__link"
+        onClick={() => {
+          if ("URL" in content.Link.target) {
+            window.open(
+              content.Link.target.URL,
+              "_blank",
+              "noopener,noreferrer"
+            );
+          } else {
+            context.openReference?.(
+              content.Link.target.Item[0] +
+                (content.Link.target.Item[1]
+                  ? "#" + content.Link.target.Item[1]
+                  : "")
+            );
+          }
+        }}
+      >
+        {content.Link.text &&
+          content.Link.text.map((subContent, index) => (
+            <StructuredContentRenderer
+              key={index}
+              content={subContent}
+              context={{ ...context, depth: context.depth + 1 }}
+            />
+          ))}
+        {!content.Link.text && (
+          <span className="structured-content__link__default-text">
+            <ArrowRight />
+          </span>
+        )}
+      </a>
+    );
   }
   if ("TQF" in content) {
     return (

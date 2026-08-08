@@ -208,12 +208,16 @@ class NodeViewContext {
 
 export function NodeView({
   nodeID,
+  hash,
+  setHash,
   layout = "horizontal",
   maxOpenWindows = 2,
   showNavigationButton = false,
   nodePreviewFunction,
 }: {
   nodeID: string;
+  hash?: string;
+  setHash?: (hash: string | undefined) => void;
   layout?: "horizontal" | "vertical";
   maxOpenWindows: number;
   showNavigationButton?: boolean;
@@ -383,6 +387,9 @@ export function NodeView({
           nodeID={nodeID}
           openLink={(key) => {
             setUserInteracted(true);
+
+            // Navigate is not used here as the custom scroll function in NodeContent will handle the scrolling to the section.
+            setHash?.(`node-${key}`);
             setNodeViewContext((prevContext) => {
               const next = prevContext.clone();
               next.openWindow("NodeContent");
@@ -391,13 +398,6 @@ export function NodeView({
                 // Minimize the details panel when a window is opened in vertical layout
                 setNodeDetailsState("Minimized");
               }
-
-              // Navigate is not used here as the custom scroll function in NodeContent will handle the scrolling to the section.
-              window.history.pushState(
-                {},
-                "",
-                `/${baseManager?.getName()}/${nodeID}#node-${key}`
-              );
 
               return next;
             });
@@ -486,6 +486,8 @@ export function NodeView({
               content = (
                 <NodeContent
                   nodeID={nodeID}
+                  hash={hash}
+                  setHash={setHash}
                   nodePreviewFunction={nodePreviewFunction}
                 />
               );

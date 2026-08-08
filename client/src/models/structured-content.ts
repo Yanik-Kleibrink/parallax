@@ -35,6 +35,8 @@ export interface Tag {
   subitems: string[];
 }
 
+export type LinkTarget = { Item: [string, string | null] } | { URL: string };
+
 export type StructuredContent =
   | {
       Section: {
@@ -98,8 +100,8 @@ export type StructuredContent =
     }
   | {
       Link: {
-        text: StructuredContent[];
-        url: string;
+        text: StructuredContent[] | null;
+        target: LinkTarget;
       };
     }
   | {

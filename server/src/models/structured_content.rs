@@ -86,9 +86,17 @@ pub enum StructuredContent {
     Italic(Vec<StructuredContent>),
 
     /// An internal link to another item.
+    ///
+    /// In org mode links are written as `[[target][text]]` where
+    /// `test`  `text` is the text to display for the link and
+    /// target is either
+    ///  - item_id
+    ///  - item_id.label
+    ///
+    /// Note that the text can be ommitted.
     Link {
-        text: Vec<StructuredContent>,
-        url: String,
+        text: Option<Vec<StructuredContent>>,
+        target: LinkTarget,
     },
 
     /// A work item.
@@ -135,6 +143,16 @@ pub struct Tag {
     /// These are the keys of the subitems that are nested inside
     /// directly in this tag.
     pub subitems: Vec<String>,
+}
+
+/// The target of a link, either a URL or an item.
+#[derive(Serialize, Debug, PartialEq)]
+pub enum LinkTarget {
+    /// A URL link.
+    URL(String),
+    /// The first element is the item id, the second element is the
+    /// sub label.
+    Item(String, Option<String>),
 }
 
 /// The flavor of a block element, e.g., a theorem, definition, proof,

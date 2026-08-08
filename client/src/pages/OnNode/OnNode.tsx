@@ -17,6 +17,7 @@ export default function OnNode() {
     ((nodeID: string) => void) | undefined
   >(undefined);
   const [modalNode, setModalNode] = useState<string | null>(null);
+  const [hash, setHash] = useState<string | undefined>(undefined);
 
   const { node } = useParams<{ node: string }>();
   const navigate = useNavigate();
@@ -93,6 +94,8 @@ export default function OnNode() {
       )}
       <NodeView
         nodeID={node!}
+        hash={hash}
+        setHash={setHash}
         layout={layout}
         maxOpenWindows={maxNumberOfOpenWindows}
         showNavigationButton={layout === "vertical"}
@@ -115,7 +118,15 @@ export default function OnNode() {
             }}
           >
             <NodeView
-              nodeID={modalNode}
+              nodeID={modalNode.split("#")[0]}
+              hash={
+                modalNode.split("#")[1]
+                  ? `${modalNode.split("#")[1]}`
+                  : undefined
+              }
+              setHash={(hash) => {
+                setModalNode(`${modalNode.split("#")[0]}#${hash}`);
+              }}
               layout="horizontal"
               maxOpenWindows={maxNumberOfOpenWindows}
               showNavigationButton={false}

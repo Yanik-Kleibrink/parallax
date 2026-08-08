@@ -15,12 +15,15 @@ import "./NodeContent.scss";
 
 export function NodeContent({
   nodeID,
+  hash,
+  setHash,
   nodePreviewFunction = undefined,
 }: {
   nodeID: string;
+  hash?: string;
+  setHash?: (hash: string | undefined) => void;
   nodePreviewFunction?: (nodeID: string) => void;
 }) {
-  const lastScrollHash = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const [handleContentRender, setHandleContentRender] = useState<() => void>(
@@ -47,24 +50,22 @@ export function NodeContent({
 
   useEffect(() => {
     setHandleContentRender(() => () => {
-      if (!location.hash) return;
-      if (lastScrollHash.current === location.hash) return;
-
-      console.log("Scrolling to hash:", location.hash);
+      if (!hash) return;
+      console.info("Scrolling to hash:", hash);
 
       const container = scrollRef.current;
       const element = container?.querySelector(
-        `#${location.hash.slice(1)}`
+        `#${hash}`
       ) as HTMLElement | null;
       if (container && element) {
         container.scrollTo({
           top: element.offsetTop,
           behavior: "smooth",
         });
-        lastScrollHash.current = location.hash;
+        setHash && setHash(undefined); // Clear the hash after scrolling to prevent repeated scrolling on re-render.
       }
     });
-  }, [location.hash, scrollRef, lastScrollHash]);
+  }, [hash, scrollRef]);
 
   //. This custom scroll effect is used to ensure that only the contents container scrolls and the nav / etc. remains untouched.
   useLayoutEffect(() => {

@@ -3,7 +3,8 @@ use crate::html::latex::HTMLLatexExport;
 use crate::html::tikz::HTMLTikzExport;
 use crate::models::item::CitationInformation;
 use crate::models::structured_content::{
-    BlockFlavor, ProgressState, StructuredContent, TQFFlavor, Tag,
+    BlockFlavor, LinkTarget, ProgressState, StructuredContent,
+    TQFFlavor, Tag,
 };
 use crate::parsing::regexes::*;
 
@@ -549,12 +550,44 @@ impl HTMLExportConfiguration {
                     }
                     LINK => {
                         let l = cast!(Link);
-                        warn!(
-                            text = l.raw(),
-                            "Link elements are not yet supported in the export. Skipping link."
-                        );
 
-                        return vec![];
+                        let text = if l.has_description() {
+                            Some(
+                                l.description()
+                                    .flat_map(|c| {
+                                        self.convert_node(&c)
+                                    })
+                                    .collect::<Vec<_>>(),
+                            )
+                        } else {
+                            None
+                        };
+
+                        let target = l.path().to_string();
+
+                        if target.starts_with("http://")
+                            || target.starts_with("https://")
+                        {
+                            return vec![StructuredContent::Link {
+                                text,
+                                target: LinkTarget::URL(target),
+                            }];
+                        }
+
+                        return vec![StructuredContent::Link {
+                            text,
+                            target: LinkTarget::Item(
+                                target
+                                    .split('.')
+                                    .next()
+                                    .unwrap_or("")
+                                    .to_string(),
+                                target
+                                    .split('.')
+                                    .nth(1)
+                                    .map(|s| s.to_string()),
+                            ),
+                        }];
                     }
                     SPECIAL_BLOCK => {
                         let b = cast!(SpecialBlock);
@@ -1481,6 +1514,63 @@ for i in range(10):
             content: "for i in range(10):\n    print(i)\n"
                 .to_string(),
             language: Some("python".to_string()),
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_link_url,
+        r#"[[https://www.example.com][Example Link]]"#,
+        vec![StructuredContent::Paragraph {
+            content: vec![StructuredContent::Link {
+                text: Some(vec![StructuredContent::Text(
+                    "Example Link".to_string()
+                )]),
+                target: LinkTarget::URL(
+                    "https://www.example.com".to_string()
+                ),
+            }]
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_link_url_without_text,
+        r#"[[https://www.example.com]]"#,
+        vec![StructuredContent::Paragraph {
+            content: vec![StructuredContent::Link {
+                text: None,
+                target: LinkTarget::URL(
+                    "https://www.example.com".to_string()
+                ),
+            }]
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_link_item_id,
+        r#"[[item_id][Item Link]]"#,
+        vec![StructuredContent::Paragraph {
+            content: vec![StructuredContent::Link {
+                text: Some(vec![StructuredContent::Text(
+                    "Item Link".to_string()
+                )]),
+                target: LinkTarget::Item("item_id".to_string(), None),
+            }]
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_link_item_id_with_label,
+        r#"[[item_id.label][Item Link]]"#,
+        vec![StructuredContent::Paragraph {
+            content: vec![StructuredContent::Link {
+                text: Some(vec![StructuredContent::Text(
+                    "Item Link".to_string()
+                )]),
+                target: LinkTarget::Item(
+                    "item_id".to_string(),
+                    Some("label".to_string()),
+                ),
+            }]
         }]
     );
 }
