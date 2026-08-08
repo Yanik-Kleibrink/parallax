@@ -283,7 +283,14 @@ export function Navigation({
         />
       </SigmaContainer>
       {focusNode && focusNode !== defaultNode && (
-        <div className="navigation__focus-node">
+        <div
+          className="navigation__focus-node"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Copy the node ID to the clipboard
+            navigator.clipboard.writeText(focusNode);
+          }}
+        >
           <NodePreview nodeID={focusNode} />
         </div>
       )}

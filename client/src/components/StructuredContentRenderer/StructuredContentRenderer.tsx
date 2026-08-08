@@ -153,7 +153,7 @@ export function StructuredContentRenderer({
       <div
         className={`structured-content__block structured-content__block--${typeof content.Block.flavor == "string" ? content.Block.flavor.toLowerCase() : "unknown"}`}
         id={content.Block.label ? `${content.Block.label}` : undefined}
-        onContextMenu={(e) => {
+        onClick={(e) => {
           e.preventDefault();
           if (content.Block.label) {
             navigator.clipboard
