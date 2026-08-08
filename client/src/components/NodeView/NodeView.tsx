@@ -6,7 +6,7 @@ import {
   NodeVideo,
 } from "@/components";
 import { getNode, checkContentEmpty } from "@/utils";
-import { BaseManagerContext } from "@/providers";
+import { BaseManagerContext, NodeIDContext } from "@/providers";
 import type { Item } from "@/models";
 
 import { useState, useContext, useEffect, type JSX } from "react";
@@ -358,7 +358,7 @@ export function NodeView({
   ]);
 
   return (
-    <>
+    <NodeIDContext value={nodeID}>
       <div
         className={[
           "node-view__details",
@@ -597,6 +597,6 @@ export function NodeView({
           }
           // Add other window types here if needed
         })}
-    </>
+    </NodeIDContext>
   );
 }

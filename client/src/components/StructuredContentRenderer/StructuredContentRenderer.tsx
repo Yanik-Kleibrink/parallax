@@ -1,5 +1,5 @@
 import type { StructuredContent, Item } from "@/models";
-import { BaseManagerContext } from "@/providers";
+import { BaseManagerContext, NodeIDContext } from "@/providers";
 import { ProgressIcon } from "@/utils";
 
 import {
@@ -44,6 +44,8 @@ export function StructuredContentRenderer({
   content: StructuredContent;
   context: StructuredContentRendererContext;
 }) {
+  const nodeID = useContext(NodeIDContext);
+
   if ("Section" in content) {
     const headlineLevel = Math.min(context.depth + 1, 6);
     const Headline = `h${headlineLevel}` as keyof JSX.IntrinsicElements;
@@ -142,6 +144,18 @@ export function StructuredContentRenderer({
       <div
         className={`structured-content__block structured-content__block--${typeof content.Block.flavor == "string" ? content.Block.flavor.toLowerCase() : "unknown"}`}
         id={content.Block.label ? `${content.Block.label}` : undefined}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (content.Block.label) {
+            navigator.clipboard
+              .writeText(`${nodeID}.${content.Block.label}`)
+              .catch((err) => {
+                console.error("Failed to copy block label: ", err);
+              });
+          } else {
+            alert("This block does not have a label to copy.");
+          }
+        }}
       >
         {content.Block.name && (
           <div className="structured-content__block__name">
