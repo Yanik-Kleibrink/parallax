@@ -11,6 +11,7 @@ import "@/styles/forms.scss";
 
 // Disable console.debug in production
 console.debug = () => {};
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

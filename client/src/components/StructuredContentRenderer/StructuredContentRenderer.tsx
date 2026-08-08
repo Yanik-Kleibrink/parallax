@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Copy } from "react-bootstrap-icons";
 import { Highlight, themes } from "prism-react-renderer";
+import Prism from "prismjs";
 
 import "./StructuredContentRenderer.scss";
 
@@ -174,6 +175,9 @@ export function StructuredContentRenderer({
           </div>
         )}
         <Highlight
+          /* Need to manually reference the prismjs Prism instance the comes from
+           vite-plugin-prismjs */
+          prism={Prism}
           theme={themes.oneLight}
           code={content.Code.content.trim()}
           language={content.Code.language ? content.Code.language : "text"}

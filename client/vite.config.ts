@@ -3,12 +3,17 @@ import { reactRouter } from "@react-router/dev/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
 import path from "path";
+import prismjs from "vite-plugin-prismjs";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     reactRouter(),
     svgr(),
+    prismjs({
+      languages: "all",
+      theme: "oneLight",
+    }),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
