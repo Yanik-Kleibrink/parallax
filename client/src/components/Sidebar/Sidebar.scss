@@ -89,6 +89,8 @@
     }
     & .navigation {
       visibility: collapse;
+      width: 0;
+      height: 0;
     }
   }
 
