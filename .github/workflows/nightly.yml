@@ -150,11 +150,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'Yanik-Kleibrink/parallax-demo'
-          path: 'parallax-demo'
+          path: 'demo'
 
       - name: Package Parallax Demo Source
         run: |
-          tar -cJf demo.tar.xz parallax-demo
+          tar -cJf demo.tar.xz demo
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
