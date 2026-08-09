@@ -19,7 +19,13 @@ use tracing::info;
 
 /// The type of asset to be accessed. Can be either "pdf" or "html".
 #[derive(
-    serde::Deserialize, serde::Serialize, Debug, Clone, Copy,
+    serde::Deserialize,
+    serde::Serialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
 )]
 enum AssetType {
     #[serde(rename = "pdf")]
@@ -97,7 +103,15 @@ pub async fn grant_asset(
     )
     .unwrap();
 
-    Ok(HttpResponse::Ok().json(format!("/asset/{}", token)))
+    if asset_type == AssetType::Html {
+        // For HTML assets, return a path that ends with a slash to
+        // indicate that it is a directory.
+        //
+        // TODO: Maybe don't fix the return path to index.html?
+        Ok(HttpResponse::Ok().json(format!("/asset/{}/", token)))
+    } else {
+        Ok(HttpResponse::Ok().json(format!("/asset/{}", token)))
+    }
 }
 
 /// This struct is used to deserialize the path parameters for the
@@ -167,8 +181,9 @@ pub async fn access_asset(
             }
         }
         (AssetType::Html, tail) => {
-            let tail =
-                tail.unwrap_or_else(|| PathBuf::from("index.html"));
+            let tail = tail
+                .filter(|p| !p.as_os_str().is_empty())
+                .unwrap_or_else(|| PathBuf::from("index.html"));
 
             // Access the HTML asset.
             if let Some(base_path) = items
@@ -176,7 +191,7 @@ pub async fn access_asset(
                 .await
             {
                 // Combine with tail and check that it is inside the
-                // base path
+                // html base path
                 if let Some(path) =
                     base_path.join(&tail).canonicalize().ok()
                 {
