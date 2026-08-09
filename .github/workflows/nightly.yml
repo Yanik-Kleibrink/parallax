@@ -146,6 +146,16 @@ jobs:
         with:
           name: release-archives
 
+      - name: Checkout Parallax Demo Repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'Yanik-Kleibrink/parallax-demo'
+          path: 'parallax-demo'
+
+      - name: Package Parallax Demo Source
+        run: |
+          tar -cJf demo.tar.xz parallax-demo
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -186,7 +196,16 @@ jobs:
             cd server
             cargo run --release -- [path to base]
             ```
+
+            #### 3. Serving the Demo / Documentation
+            Unzip the demo and launch the backend server:
+            ```sh
+            tar -xf demo.tar.xz
+            cd server
+            cargo run --release -- ../demo
+            ```
           prerelease: true
           files: |
             client.tar.xz
             server.tar.xz
+            demo.tar.xz
