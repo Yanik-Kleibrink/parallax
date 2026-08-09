@@ -70,6 +70,11 @@ struct APIServerConfig {
     /// client. This is insecure and should only be used for
     /// testing purposes.
     insecure_tokens: Option<bool>,
+
+    /// This flag indicates whether the server is allowed to serve
+    /// assets that are outside of the root path. This is insecure and
+    /// should only be used for testing purposes.
+    allow_outside_assets: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -281,6 +286,8 @@ impl Base {
         let config_file =
             fs::read_to_string(root_path.join("config.yaml"))?;
         let config: BaseConfig = serde_yaml::from_str(&config_file)?;
+        let allow_outside_assets =
+            config.api_server.allow_outside_assets.unwrap_or(false);
 
         let html_export = config.generate_initial_html_export()?;
         Ok(Base {
@@ -290,6 +297,7 @@ impl Base {
             file_watcher: None,
             items: Arc::new(ItemDatabase::new(
                 &root_path,
+                allow_outside_assets,
                 html_export.clone(),
             )),
         })
@@ -437,6 +445,8 @@ impl Base {
 
     fn start_file_watcher(&mut self) -> Result<(), Box<dyn Error>> {
         let items = self.items.clone();
+        let dump_bibliography_path =
+            self.get_dump_bibliography_path();
 
         info!("Starting file watcher...");
 
@@ -446,13 +456,15 @@ impl Base {
                 None,
                 move |result: DebounceEventResult| {
                     let items = items.clone();
+                    let dump_bibliography_path =
+                        dump_bibliography_path.clone();
                     rt.spawn(async move {
                         match result {
                             Ok(events) =>
                                 for event in events {
                                     match event.event.kind {
                                         notify::EventKind::Create(_) => {
-                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
+                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Update);
                                         }
                                         notify::EventKind::Modify(subkind) => {
                                             match subkind {
@@ -460,28 +472,28 @@ impl Base {
                                                     match rename_kind {
                                                         notify::event::RenameMode::To => {
                                                             info!(path=?event.event.paths[0], "File renamed to");
-                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
+                                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Update);
                                                         }
                                                         notify::event::RenameMode::From => {
                                                             info!(path=?event.event.paths[0], "File renamed from");
-                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
+                                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Remove);
                                                         }
                                                         notify::event::RenameMode::Both => {
                                                             info!(from=?event.event.paths[0], to=?event.event.paths[1], "File renamed");
-                                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
-                                                            handle_file_update(items.clone(), &event.event.paths[1], ItemUpdateEvent::Update);
+                                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Remove);
+                                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[1], ItemUpdateEvent::Update);
                                                         }
                                                         _ => {}
                                                     }
                                                 },
                                                 notify::event::ModifyKind::Data(_) => {
-                                                    handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Update);
+                                                    handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Update);
                                                 },
                                                 _ => {}
                                             }
                                         }
                                         notify::EventKind::Remove(_) => {
-                                            handle_file_update(items.clone(), &event.event.paths[0], ItemUpdateEvent::Remove);
+                                            handle_file_update(items.clone(), &dump_bibliography_path, &event.event.paths[0], ItemUpdateEvent::Remove);
                                         }
                                         _ => {}
                                     }
@@ -513,7 +525,31 @@ impl Base {
         Ok(())
     }
 
+    /// Get the path to the dump bibliography file, if any. This function
+    /// returns the canonicalized path to the dump bibliography file, if it is
+    /// specified in the configuration. If the path cannot be canonicalized, it logs an error and returns None.
+    fn get_dump_bibliography_path(&self) -> Option<PathBuf> {
+        match self.config.dump_bibliography {
+            Some(ref dump_path) => {
+                if let Ok(canonical_path) =
+                    self.root_path.join(dump_path).canonicalize()
+                {
+                    Some(canonical_path)
+                } else {
+                    error!(
+                        path = ?self.root_path.join(dump_path),
+                        "Failed to canonicalize dump bibliography path"
+                    );
+                    None
+                }
+            }
+            None => None,
+        }
+    }
+
     async fn initialize_items_db(&mut self) {
+        let dump_bibliography_path =
+            self.get_dump_bibliography_path();
         // Walk org files
         for entry in WalkDir::new(self.root_path.clone())
             .into_iter()
@@ -532,6 +568,7 @@ impl Base {
             let item_path = entry.path();
             handle_file_update(
                 Arc::clone(&self.items),
+                &dump_bibliography_path,
                 &item_path.to_path_buf(),
                 ItemUpdateEvent::Update,
             );
@@ -547,8 +584,15 @@ enum ItemUpdateEvent {
 
 /// Handle a file update event. This function is called when a file is
 /// modified, created, or removed.
+///
+/// @param items The item database to update.
+/// @param dump_bibliography_path The path to the dump bibliography file, if any. Note that the
+/// path should be canonicalized.
+/// @param path The path to the file that was updated.
+/// @param event The type of update event (update or remove).
 fn handle_file_update(
     items: Arc<ItemDatabase>,
+    dump_bibliography_path: &Option<PathBuf>,
     path: &PathBuf,
     event: ItemUpdateEvent,
 ) {
@@ -594,6 +638,18 @@ fn handle_file_update(
             }
         }
         Some("bib") => {
+            // Ensure that this is not the dump bibliography file, as that is handled separately.
+            if let Some(dump_path) = dump_bibliography_path {
+                if let Ok(canonical_path) = path.canonicalize() {
+                    if canonical_path == *dump_path {
+                        debug!(
+                            path=?path,
+                            "Ignoring dump bibliography file upgrade"
+                        );
+                        return;
+                    }
+                }
+            }
             let name = path
                 .file_stem()
                 .and_then(OsStr::to_str)

@@ -655,11 +655,12 @@ pub fn get_assets(
                     }
                     _ if asset_path.starts_with("/") => {
                         // This also checks for existance.
-                        if let Ok(candidate_path) = base_path.join(asset_path).canonicalize() {
+                        if let Ok(candidate_path) = base_path.join(asset_path.strip_prefix("/").unwrap()).canonicalize() {
                             Some(Either::Left(candidate_path))
                         } else {
                             warn!(
                                 path = asset_path,
+                                attempted_path = ?base_path.join(asset_path.strip_prefix("/").unwrap()).to_string_lossy(),
                                   "Asset path does not exist. Ignoring.");
                             None
                         }

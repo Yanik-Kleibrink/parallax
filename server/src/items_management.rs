@@ -76,6 +76,10 @@ pub struct ItemDatabase {
     /// resolve relative paths.
     base_path: Arc<PathBuf>,
 
+    /// Whether to allow assets to be outside of the base path. This
+    /// can be useful but is significantly more insecure.
+    allow_outside_assets: bool,
+
     /// The database of items. The key is the name of the item, and
     /// the value is the item itself.
     db: DashMap<String, ItemWithAccess>,
@@ -114,12 +118,14 @@ impl ItemDatabase {
     /// Create an empty ItemDatabase.
     pub fn new(
         base_path: &PathBuf,
+        allow_outside_assets: bool,
         html_export_config: HTMLExportConfiguration,
     ) -> Self {
         // Create broadcast channel
         let (tx, _) = broadcast::channel(512);
         Self {
             base_path: Arc::new(base_path.clone()),
+            allow_outside_assets,
             db: DashMap::new(),
             privileges_unsafe: AtomicBool::new(false),
             html_export_config: RwLock::new(html_export_config),
@@ -147,7 +153,7 @@ impl ItemDatabase {
             ));
         }
 
-        if !dump_path.exists() && dump_path.parent().is_none() {
+        if !dump_path.exists() {
             if dump_path.parent().is_none() {
                 error!(
                     dump_path = ?dump_path.display(),
@@ -194,7 +200,7 @@ impl ItemDatabase {
                     )
                     .await;
 
-                    if !self_clone
+                    if self_clone
                         .dump_bib_necessary
                         .load(Ordering::SeqCst)
                     {
@@ -208,13 +214,17 @@ impl ItemDatabase {
                         self_clone
                             .dump_bib_necessary
                             .store(false, Ordering::SeqCst);
-                        debug!(dump_path = ?dump_path, "Dumping bibliography");
+                        info!(dump_path = ?dump_path, "Dumping bibliography");
                         if let Err(err) = fs::write(
                             &dump_path,
                             export_config.bibliography.dump(),
                         ) {
                             error!(error = %err, "Dumping bibliography failed");
                         }
+                    } else {
+                        info!(
+                            "Global bibliography dump not necessary, skipping"
+                        );
                     }
                 }
             });
@@ -713,7 +723,9 @@ impl ItemDatabase {
         if let Some(item) = self.retrieve(name, group).await {
             if let Some(pdf_path) = item.pdf.preferred_path() {
                 // Check that the pdf path is inside the base path.
-                if !pdf_path.starts_with(&*self.base_path) {
+                if !self.allow_outside_assets
+                    && !pdf_path.starts_with(&*self.base_path)
+                {
                     error!(
                         "PDF path {} is not inside the base path {}",
                         pdf_path.display(),
@@ -738,9 +750,11 @@ impl ItemDatabase {
         if let Some(item) = self.retrieve(name, group).await {
             if let Some(html_path) = item.html.preferred_path() {
                 // Check that the pdf path is inside the base path.
-                if !html_path.starts_with(&*self.base_path) {
+                if !self.allow_outside_assets
+                    && !html_path.starts_with(&*self.base_path)
+                {
                     error!(
-                        "PDF path {} is not inside the base path {}",
+                        "HTML path {} is not inside the base path {}",
                         html_path.display(),
                         self.base_path.display()
                     );
