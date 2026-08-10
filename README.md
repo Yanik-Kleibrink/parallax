@@ -8,6 +8,7 @@
 - **Hierarchical Organization:** A tag-based system to neatly categorize papers, discussions, books, and talks.
 - **Seamless Asset Linking:** Easily attach external resources like videos, websites, and PDFs.
 - **Smart PDFs:** Automatic linking and detection of PDF files.
+- **Offline Capability:** Functions completely as a Progressive Web App (PWA) with full local caching, allowing you to work seamlessly without a server or internet connection.
 
 ## 🚀 Getting Started
 
