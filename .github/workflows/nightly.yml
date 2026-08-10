@@ -154,7 +154,7 @@ jobs:
 
       - name: Package Parallax Demo Source
         run: |
-          tar -cJf demo.tar.xz demo
+          tar -cJf demo.tar.xz --exclude=".git" demo
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
