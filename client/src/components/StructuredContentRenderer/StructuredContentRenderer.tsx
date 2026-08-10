@@ -247,7 +247,10 @@ export function StructuredContentRenderer({
               <span
                 key={key}
                 className="structured-content__citation__references__reference"
-                onClick={() => context.openReference?.(key)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  context.openReference?.(key);
+                }}
               >
                 {abbreviation}
               </span>
