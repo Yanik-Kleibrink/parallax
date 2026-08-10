@@ -1,5 +1,9 @@
 .structured-section {
   &__section {
+    &__anchor {
+      cursor: pointer;
+    }
+
     &__headline {
       display: flex;
       gap: 1rem;
