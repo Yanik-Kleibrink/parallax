@@ -72,8 +72,8 @@ struct APIServerConfig {
     insecure_tokens: Option<bool>,
 
     /// This flag indicates whether the server is allowed to serve
-    /// assets that are outside of the root path. This is insecure and
-    /// should only be used for testing purposes.
+    /// assets that are outside of the root path. This is insecure
+    /// and should only be used for testing purposes.
     allow_outside_assets: Option<bool>,
 }
 
@@ -525,9 +525,11 @@ impl Base {
         Ok(())
     }
 
-    /// Get the path to the dump bibliography file, if any. This function
-    /// returns the canonicalized path to the dump bibliography file, if it is
-    /// specified in the configuration. If the path cannot be canonicalized, it logs an error and returns None.
+    /// Get the path to the dump bibliography file, if any. This
+    /// function returns the canonicalized path to the dump
+    /// bibliography file, if it is specified in the
+    /// configuration. If the path cannot be canonicalized, it logs an
+    /// error and returns None.
     fn get_dump_bibliography_path(&self) -> Option<PathBuf> {
         match self.config.dump_bibliography {
             Some(ref dump_path) => {
@@ -586,8 +588,8 @@ enum ItemUpdateEvent {
 /// modified, created, or removed.
 ///
 /// @param items The item database to update.
-/// @param dump_bibliography_path The path to the dump bibliography file, if any. Note that the
-/// path should be canonicalized.
+/// @param dump_bibliography_path The path to the dump bibliography
+/// file, if any. Note that the path should be canonicalized.
 /// @param path The path to the file that was updated.
 /// @param event The type of update event (update or remove).
 fn handle_file_update(
@@ -638,7 +640,8 @@ fn handle_file_update(
             }
         }
         Some("bib") => {
-            // Ensure that this is not the dump bibliography file, as that is handled separately.
+            // Ensure that this is not the dump bibliography file, as
+            // that is handled separately.
             if let Some(dump_path) = dump_bibliography_path {
                 if let Ok(canonical_path) = path.canonicalize() {
                     if canonical_path == *dump_path {

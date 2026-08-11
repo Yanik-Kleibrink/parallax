@@ -180,8 +180,10 @@ impl HTMLExportConfiguration {
             if let Some(_) = caps.name("citation") {
                 let keys_str =
                     caps.name("keys").map_or("", |m| m.as_str());
-                let additive_str =
-                    caps.name("additive").map_or("", |m| m.as_str());
+                let prefix_str =
+                    caps.name("prefix").map_or("", |m| m.as_str());
+                let suffix_str =
+                    caps.name("suffix").map_or("", |m| m.as_str());
 
                 let keys: Vec<(String, String)> = FIND_KEYS
                     .captures_iter(keys_str)
@@ -201,11 +203,8 @@ impl HTMLExportConfiguration {
                     .collect();
 
                 result.push(StructuredContent::Citation {
-                    post_script: additive_str.to_string(),
-
-                    // NOTE: This could be extended by improving the
-                    // regex to capture pre_script if needed.
-                    pre_script: String::new(),
+                    post_script: suffix_str.to_string(),
+                    pre_script: prefix_str.to_string(),
                     references: keys,
                 });
             }
@@ -1285,7 +1284,7 @@ This is a question block.
                         .to_string()
                 ),
                 StructuredContent::Citation {
-                    post_script: " Hellow".to_string(),
+                    post_script: "Hellow".to_string(),
                     pre_script: String::new(),
                     references: vec![(
                         "SpectreAttacksKocherEtAl".to_string(),
@@ -1579,6 +1578,37 @@ for i in range(10):
                     Some("label".to_string()),
                 ),
             }]
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_two_citations_in_one_line,
+        "This is a paragraph with two citations [cite:@SpectreAttacksKocherEtAl] and [cite:@SpectreAttacksKocherEtAl].",
+        vec![StructuredContent::Paragraph {
+            content: vec![
+                StructuredContent::Text(
+                    "This is a paragraph with two citations "
+                        .to_string()
+                ),
+                StructuredContent::Citation {
+                    post_script: String::new(),
+                    pre_script: String::new(),
+                    references: vec![(
+                        "SpectreAttacksKocherEtAl".to_string(),
+                        "KHFG+19".to_string()
+                    )],
+                },
+                StructuredContent::Text(" and ".to_string()),
+                StructuredContent::Citation {
+                    post_script: String::new(),
+                    pre_script: String::new(),
+                    references: vec![(
+                        "SpectreAttacksKocherEtAl".to_string(),
+                        "KHFG+19".to_string()
+                    )],
+                },
+                StructuredContent::Text(".".to_string())
+            ],
         }]
     );
 }

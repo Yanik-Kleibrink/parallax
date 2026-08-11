@@ -21,7 +21,8 @@ pub static FIND_TITLE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub static FIND_CITATIONS: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[cite:(?<keys>(?:\s*@(?:\S*);?)*)(?:.*)\]").unwrap()
+    Regex::new(r"\[cite(?::(?:/[a-zA-Z0-9_-]+)?)?:(?:\s*(?:[^@;\n]+)\s*)?(?<keys>@[\w:-]+(?:[^\n;\]]*@[\w:-]+)*)(?:\s*;?\s*(?:[^\]]+))?\]")
+        .unwrap()
 });
 pub static FIND_ACCESS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?m)^#\+access:(?<access>.*)").unwrap()
@@ -51,7 +52,7 @@ pub static FIND_BLOCK_NAME: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"#\+begin_(?<name>\S*)").unwrap());
 pub static FIND_LATEX_AND_CITATIONS: LazyLock<Regex> = LazyLock::new(
     || {
-        Regex::new(r"\\\((?<latex>.*?)\\\)|\\\[(?<display>[\s\S]*?)\\\]|(?<citation>\[cite:(?<keys>(?:\s*@(?:\S*);?)*)(?<additive>.*)\])")
+        Regex::new(r"\\\((?<latex>.*?)\\\)|\\\[(?<display>[\s\S]*?)\\\]|(?<citation>\[cite(?::(?<style>/[a-zA-Z0-9_-]+)?)?:(?:\s*(?<prefix>[^@;\n]+)\s*)?(?<keys>@[\w:-]+(?:[^\n;\]]*@[\w:-]+)*)(?:\s*;?\s*(?<suffix>[^\]]+))?\])")
         .unwrap()
     },
 );
