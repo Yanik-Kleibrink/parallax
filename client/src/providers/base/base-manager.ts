@@ -29,7 +29,8 @@ type FuseSearchItem = {
   key: string;
   title: string;
   authors: string[];
-  year: number | null;
+  // Fuse does not behave well with numbers, so we convert the year / date to a string for searching purposes.
+  date: string;
 };
 
 /**
@@ -495,10 +496,16 @@ export class BaseManager {
         "citation_information" in item && item.citation_information
           ? item.citation_information.authors
           : [],
-      year:
+      date:
         "citation_information" in item && item.citation_information
-          ? item.citation_information.year
-          : null,
+          ? String(
+              item.citation_information.year +
+                "-" +
+                item.citation_information.month +
+                "-" +
+                item.citation_information.day
+            )
+          : "",
     });
     this.deboundedRebuildFuseSearchIndex();
   }
@@ -543,9 +550,17 @@ export class BaseManager {
 
     // Immediately send the results of the search query to the callback if the fuseSearch index is already built.
     if (this.fuseSearch !== null) {
-      const results = this.fuseSearch
-        .search(query)
-        .map((result) => result.item.key);
+      const terms = query.trim().split(/\s+/);
+
+      let results = this.searchableData.map((item) => item.key);
+
+      for (const term of terms) {
+        const matchedIds = new Set(
+          this.fuseSearch.search(term).map(({ item }) => item.key)
+        );
+
+        results = results.filter((key) => matchedIds.has(key));
+      }
       callback(results);
     } else {
       this.deboundedRebuildFuseSearchIndex();
