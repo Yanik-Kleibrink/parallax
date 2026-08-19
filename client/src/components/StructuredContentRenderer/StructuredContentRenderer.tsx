@@ -154,7 +154,7 @@ export function StructuredContentRenderer({
         className={`structured-content__block structured-content__block--${typeof content.Block.flavor == "string" ? content.Block.flavor.toLowerCase() : "unknown"}`}
         id={content.Block.label ? `${content.Block.label}` : undefined}
         onClick={(e) => {
-          e.preventDefault();
+          e.stopPropagation();
           if (content.Block.label) {
             navigator.clipboard
               .writeText(`${nodeID}.${content.Block.label}`)
@@ -220,7 +220,8 @@ export function StructuredContentRenderer({
         </Highlight>
         <button
           className="structured-content__code__copy-button"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             navigator.clipboard
               .writeText(content.Code.content.trim())
               .catch((err) => {
@@ -248,7 +249,7 @@ export function StructuredContentRenderer({
                 key={key}
                 className="structured-content__citation__references__reference"
                 onClick={(e) => {
-                  e.preventDefault();
+                  e.stopPropagation();
                   context.openReference?.(key);
                 }}
               >
@@ -300,7 +301,7 @@ export function StructuredContentRenderer({
     return (
       <a
         className="structured-content__link"
-        onClick={() => {
+        onClick={(e) => {
           if ("URL" in content.Link.target) {
             window.open(
               content.Link.target.URL,
@@ -308,6 +309,7 @@ export function StructuredContentRenderer({
               "noopener,noreferrer"
             );
           } else {
+            e.stopPropagation();
             context.openReference?.(
               content.Link.target.Item[0] +
                 (content.Link.target.Item[1]
