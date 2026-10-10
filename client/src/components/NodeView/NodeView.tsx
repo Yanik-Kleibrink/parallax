@@ -443,7 +443,7 @@ export function NodeView({
                     /* On right click open assets (i.e., html, pdf, video) in a new tab. */
                     onContextMenu={(_) => {
                       window.open(
-                        `/${baseManager?.getName()}/${nodeID}/${windowType.toLowerCase()}`,
+                        `${import.meta.env.BASE_URL}${baseManager?.getName()}/${nodeID}/${windowType.toLowerCase()}`,
                         "_blank"
                       );
                     }}
