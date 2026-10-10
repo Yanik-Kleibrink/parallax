@@ -8,5 +8,6 @@ export default [
     route("reconnect", "./pages/ReconnectBase/ReconnectBase.tsx"),
     route("invite", "./pages/InviteBase/InviteBase.tsx"),
     route(":node", "./pages/OnNode/OnNode.tsx"),
+    route(":node/:assetParam", "./pages/OnAsset/OnAsset.tsx"),
   ]),
 ] satisfies RouteConfig;

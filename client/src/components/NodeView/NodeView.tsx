@@ -440,6 +440,13 @@ export function NodeView({
                       });
                       event.stopPropagation(); // Prevent the click from propagating to the parent div
                     }}
+                    /* On right click open assets (i.e., html, pdf, video) in a new tab. */
+                    onContextMenu={(_) => {
+                      window.open(
+                        `/${baseManager?.getName()}/${nodeID}/${windowType.toLowerCase()}`,
+                        "_blank"
+                      );
+                    }}
                   >
                     {icon}
                   </button>

@@ -1,0 +1,18 @@
+/*
+This file mainly overrides some defaults so that the node
+content can be printed nicely. 
+*/
+
+#root {
+  overflow-y: unset;
+}
+
+.node-content-wrapper {
+  height: auto;
+}
+
+.structured-content__tqf {
+  position: static;
+  width: auto;
+  margin: 1rem 0 2rem;
+}
