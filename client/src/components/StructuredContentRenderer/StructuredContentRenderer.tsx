@@ -186,10 +186,12 @@ export function StructuredContentRenderer({
                   />
                 ))}
             </span>
-            <span className="structured-content__block__name__verified">
-              {content.Block.verified === true && <ShieldFillCheck />}
-              {content.Block.verified === false && <ShieldSlashFill />}
-            </span>
+            {content.Block.verified !== null && (
+              <span className="structured-content__block__name__verified">
+                {content.Block.verified === true && <ShieldFillCheck />}
+                {content.Block.verified === false && <ShieldSlashFill />}
+              </span>
+            )}
           </div>
         )}
         {content.Block.content.map((subContent, index) => (
