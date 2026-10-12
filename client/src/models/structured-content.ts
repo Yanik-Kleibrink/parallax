@@ -78,6 +78,7 @@ export type StructuredContent =
         content: StructuredContent[];
         name: StructuredContent[] | null;
         label: string | null;
+        verified: boolean | null;
       };
     }
   | {

@@ -59,6 +59,7 @@ pub enum StructuredContent {
         content: Vec<StructuredContent>,
         name: Option<Vec<StructuredContent>>,
         label: Option<String>,
+        verified: Option<bool>,
     },
 
     /// A code block.

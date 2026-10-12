@@ -9,7 +9,12 @@ import {
   useLayoutEffect,
   type JSX,
 } from "react";
-import { Copy, ArrowRight } from "react-bootstrap-icons";
+import {
+  Copy,
+  ArrowRight,
+  ShieldFillCheck,
+  ShieldSlashFill,
+} from "react-bootstrap-icons";
 import { Highlight, themes } from "prism-react-renderer";
 import Prism from "prismjs";
 
@@ -166,18 +171,25 @@ export function StructuredContentRenderer({
           }
         }}
       >
-        {content.Block.name && (
+        {(content.Block.name || content.Block.verified !== null) && (
           <div className="structured-content__block__name">
-            {content.Block.name.map((subContent, index) => (
-              <StructuredContentRenderer
-                key={index}
-                content={subContent}
-                context={{
-                  ...context,
-                  depth: context.depth + 1,
-                }}
-              />
-            ))}
+            <span className="structured-content__block__name__content">
+              {content.Block.name &&
+                content.Block.name.map((subContent, index) => (
+                  <StructuredContentRenderer
+                    key={index}
+                    content={subContent}
+                    context={{
+                      ...context,
+                      depth: context.depth + 1,
+                    }}
+                  />
+                ))}
+            </span>
+            <span className="structured-content__block__name__verified">
+              {content.Block.verified === true && <ShieldFillCheck />}
+              {content.Block.verified === false && <ShieldSlashFill />}
+            </span>
           </div>
         )}
         {content.Block.content.map((subContent, index) => (

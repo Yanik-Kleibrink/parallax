@@ -274,6 +274,12 @@ impl HTMLExportConfiguration {
                 .collect(),
                 vec![],
             ),
+            affiliated_keywords: vec![
+                "NAME".into(),
+                "LABEL".into(),
+                "VERIFIED".into(),
+                "UNVERIFIED".into(),
+            ],
             ..Default::default()
         };
 
@@ -682,6 +688,46 @@ impl HTMLExportConfiguration {
                             })
                             .next();
 
+                        let mut verified_iter = b
+                            .syntax()
+                            .children()
+                            .filter(|c| {
+                                c.kind() == AFFILIATED_KEYWORD
+                            })
+                            .filter_map(|c| {
+                                let k = AffiliatedKeyword::cast(
+                                    c.clone(),
+                                )?;
+                                if k.raw()
+                                    .to_lowercase()
+                                    .starts_with("#+verified:")
+                                {
+                                    Some(true)
+                                } else if k
+                                    .raw()
+                                    .to_lowercase()
+                                    .starts_with("#+unverified:")
+                                {
+                                    Some(false)
+                                } else {
+                                    None
+                                }
+                            });
+
+                        let verified = match (
+                            verified_iter.next(),
+                            verified_iter.next(),
+                        ) {
+                            (None, _) => None,
+                            (Some(v), None) => Some(v),
+                            (Some(_), Some(_)) => {
+                                warn!(
+                                    "Multiple verified/unverified keywords found. Defaulting to unverified."
+                                );
+                                Some(false)
+                            }
+                        };
+
                         let name = b
                             .syntax()
                             .children()
@@ -749,6 +795,7 @@ impl HTMLExportConfiguration {
                             content,
                             name,
                             label,
+                            verified,
                         }];
                     }
                     AFFILIATED_KEYWORD => {
