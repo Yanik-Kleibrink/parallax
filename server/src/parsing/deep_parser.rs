@@ -243,11 +243,12 @@ impl HTMLExportConfiguration {
             .flatten()
     }
 
-    /// This obtains the content of a subblock with the given name from a
-    /// SpecialBlock. If the subblock does not exist, an empty vector is
-    /// returned.
+    /// This obtains the content of a subblock with the given name
+    /// from a SpecialBlock. If the subblock does not exist, an
+    /// empty vector is returned.
     ///
-    /// It is used to extract the content of subblocks like suggestion_old and suggestion_new from a suggestion block.
+    /// It is used to extract the content of subblocks like
+    /// suggestion_old and suggestion_new from a suggestion block.
     fn extract_subblock_content(
         &self,
         block: &SpecialBlock,
@@ -283,7 +284,8 @@ impl HTMLExportConfiguration {
                     .is_some()
             })
             .next()
-            // The children of the special block are analyzed to forgo the block of rendering special blocks with type name.
+            // The children of the special block are analyzed to forgo
+            // the block of rendering special blocks with type name.
             .map(|c| {
                 c.children_with_tokens()
                     .filter(|c| c.kind() == BLOCK_CONTENT)
@@ -790,8 +792,11 @@ impl HTMLExportConfiguration {
                             .next();
 
                         if flavor_str.to_lowercase() == "suggestion" {
-                            // Search for the suggestion_old and suggestion_new subblocks and extract their content
-                            // The content is empty if the subblock is not found.
+                            // Search for the suggestion_old and
+                            // suggestion_new subblocks and extract
+                            // their content
+                            // The content is empty if the subblock is
+                            // not found.
                             let old_content = self
                                 .extract_subblock_content(&b, "old");
                             let new_content = self
