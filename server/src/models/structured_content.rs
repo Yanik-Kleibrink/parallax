@@ -62,6 +62,14 @@ pub enum StructuredContent {
         verified: Option<bool>,
     },
 
+    Suggestion {
+        old: Option<Vec<StructuredContent>>,
+        new: Option<Vec<StructuredContent>>,
+        comment: Option<Vec<StructuredContent>>,
+        name: Option<Vec<StructuredContent>>,
+        label: Option<String>,
+    },
+
     /// A code block.
     Code {
         language: Option<String>,

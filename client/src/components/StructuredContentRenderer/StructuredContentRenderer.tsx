@@ -204,6 +204,67 @@ export function StructuredContentRenderer({
       </div>
     );
   }
+  if ("Suggestion" in content) {
+    return (
+      <div
+        className={`structured-content__suggestion`}
+        id={
+          content.Suggestion.label ? `${content.Suggestion.label}` : undefined
+        }
+      >
+        {content.Suggestion.name && (
+          <div className="structured-content__suggestion__name">
+            {content.Suggestion.name.map((subContent, index) => (
+              <StructuredContentRenderer
+                key={index}
+                content={subContent}
+                context={{ ...context, depth: context.depth + 1 }}
+              />
+            ))}
+          </div>
+        )}
+        {content.Suggestion.comment && (
+          <div className="structured-content__suggestion__comment">
+            {content.Suggestion.comment.map((subContent, index) => (
+              <StructuredContentRenderer
+                key={index}
+                content={subContent}
+                context={{ ...context, depth: context.depth + 1 }}
+              />
+            ))}
+          </div>
+        )}
+        {(content.Suggestion.old || content.Suggestion.new) && (
+          <div
+            className={`structured-content__suggestion__replacement ${content.Suggestion.old && content.Suggestion.new ? "structured-content__suggestion__replacement--both" : "structured-content__suggestion__replacement--single"}`}
+          >
+            {content.Suggestion.old && (
+              <div className="structured-content__suggestion__replacement__old">
+                {content.Suggestion.old.map((subContent, index) => (
+                  <StructuredContentRenderer
+                    key={index}
+                    content={subContent}
+                    context={{ ...context, depth: context.depth + 1 }}
+                  />
+                ))}
+              </div>
+            )}
+            {content.Suggestion.new && (
+              <div className="structured-content__suggestion__replacement__new">
+                {content.Suggestion.new.map((subContent, index) => (
+                  <StructuredContentRenderer
+                    key={index}
+                    content={subContent}
+                    context={{ ...context, depth: context.depth + 1 }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
   if ("Code" in content) {
     return (
       <div className="structured-content__code">

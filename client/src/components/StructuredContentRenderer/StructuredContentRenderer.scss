@@ -172,6 +172,116 @@ h6 {
     color: #1d1d1f;
   }
 
+  &__suggestion {
+    --separator: rgba(60, 60, 67, 0.18);
+
+    margin-block: 1rem;
+
+    position: relative;
+    overflow: hidden;
+
+    border: 1px solid var(--separator);
+    border-radius: 14px;
+
+    // One hairline between each section (replacement, comment), whatever the order
+    > * + * {
+      border-top: 1px solid var(--separator);
+    }
+
+    &__replacement {
+      &--both {
+        --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        transition: grid-template-columns 0.45s var(--ease);
+
+        > * + * {
+          border-left: 1px solid var(--separator);
+        }
+
+        // Lets the content size itself against the card, not its (changing) column
+        container-type: inline-size;
+
+        > * {
+          transition: padding 0.45s var(--ease);
+
+          > * {
+            // Content keeps its resting width, so it never rewraps as a column shrinks
+            width: calc(50cqi - 2.5rem - 1px);
+            transition:
+              width 0.45s var(--ease),
+              opacity 0.2s ease;
+          }
+        }
+
+        // Hover (or keyboard focus) one side: it grows, the other shrinks to a thin strip
+        @media (hover: hover) {
+          &:has(> :first-child:hover),
+          &:has(> :first-child:focus-within) {
+            grid-template-columns: minmax(0, 20fr) minmax(0, 1fr);
+          }
+          &:has(> :last-child:hover),
+          &:has(> :last-child:focus-within) {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 20fr);
+          }
+
+          // The expanded side's content fills its new width
+          > :hover > *,
+          > :focus-within > * {
+            width: 100%;
+          }
+
+          // The collapsed side is clipped, not squeezed, so the height holds
+          &:has(> :hover) > :not(:hover),
+          &:has(> :focus-within) > :not(:focus-within) {
+            overflow: hidden;
+            padding-inline: 0;
+
+            > * {
+              opacity: 0;
+            }
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          &,
+          > *,
+          > * > * {
+            transition: none;
+          }
+        }
+      }
+      &--single {
+        display: block;
+
+        > * + * {
+          border-top: 1px solid var(--separator);
+        }
+      }
+      &__old,
+      &__new {
+        position: relative;
+
+        padding: 1rem 1.25rem;
+
+        // Thin accent line along the top edge; takes no space and leaves the background free
+        box-shadow: inset 0 2px 0 var(--accent);
+      }
+
+      &__old {
+        --accent: #ff453a;
+      }
+      &__new {
+        --accent: #34c759;
+      }
+    }
+
+    &__comment {
+      padding: 1rem 1.25rem;
+    }
+  }
+
   &__code__language,
   &__block::before {
     display: block;
@@ -196,6 +306,54 @@ h6 {
       &:hover,
       &:focus {
         transform: scale(1.05);
+      }
+    }
+  }
+
+  &__block__name,
+  &__suggestion__name {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &__verified {
+      width: 1.25rem;
+      height: 1.25rem;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      margin-right: 0.25rem;
+
+      border-radius: 999px;
+
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: color-mix(in oklab, white 82%, var(--accent));
+    }
+
+    &__content {
+      display: inline-flex;
+      align-items: center;
+
+      padding: 0.25rem 0.6rem;
+
+      border-radius: 999px;
+
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1;
+
+      color: var(--accent);
+      background: color-mix(in oklab, white 82%, var(--accent));
+
+      & p {
+        margin: 0;
       }
     }
   }
@@ -316,53 +474,6 @@ h6 {
       text-align: right;
       margin-top: 1rem;
       color: #6e6e73;
-    }
-
-    &__name {
-      position: absolute;
-      top: 0.75rem;
-      right: 1rem;
-
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      &__verified {
-        width: 1.25rem;
-        height: 1.25rem;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        margin-right: 0.25rem;
-
-        border-radius: 999px;
-
-        font-size: 0.75rem;
-        color: var(--accent);
-        background: color-mix(in oklab, white 82%, var(--accent));
-      }
-
-      &__content {
-        display: inline-flex;
-        align-items: center;
-
-        padding: 0.25rem 0.6rem;
-
-        border-radius: 999px;
-
-        font-size: 0.75rem;
-        font-weight: 600;
-        line-height: 1;
-
-        color: var(--accent);
-        background: color-mix(in oklab, white 82%, var(--accent));
-
-        & p {
-          margin: 0;
-        }
-      }
     }
   }
 }

@@ -82,6 +82,16 @@ export type StructuredContent =
       };
     }
   | {
+      Suggestion: {
+        flavor: BlockFlavor;
+        old: StructuredContent[] | null;
+        new: StructuredContent[] | null;
+        comment: StructuredContent[] | null;
+        name: StructuredContent[] | null;
+        label: string | null;
+      };
+    }
+  | {
       Code: {
         content: string;
         language: string | null;

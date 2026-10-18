@@ -243,6 +243,55 @@ impl HTMLExportConfiguration {
             .flatten()
     }
 
+    /// This obtains the content of a subblock with the given name from a
+    /// SpecialBlock. If the subblock does not exist, an empty vector is
+    /// returned.
+    ///
+    /// It is used to extract the content of subblocks like suggestion_old and suggestion_new from a suggestion block.
+    fn extract_subblock_content(
+        &self,
+        block: &SpecialBlock,
+        subblock_name: &str,
+    ) -> Option<Vec<StructuredContent>> {
+        block
+            .syntax()
+            .children()
+            .filter(|c| c.kind() == BLOCK_CONTENT)
+            .flat_map(|c| c.children())
+            .filter(|c| c.kind() == SPECIAL_BLOCK)
+            .filter(|d| {
+                d.children()
+                    .filter(|c| {
+                        if c.kind() == BLOCK_BEGIN {
+                            if c.text()
+                                .to_string()
+                                .to_lowercase()
+                                .starts_with(&format!(
+                                    "#+begin_{}",
+                                    subblock_name.to_lowercase()
+                                ))
+                            {
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    })
+                    .next()
+                    .is_some()
+            })
+            .next()
+            // The children of the special block are analyzed to forgo the block of rendering special blocks with type name.
+            .map(|c| {
+                c.children_with_tokens()
+                    .filter(|c| c.kind() == BLOCK_CONTENT)
+                    .flat_map(|c| self.convert_node(&c))
+                    .collect::<Vec<_>>()
+            })
+    }
+
     /// Parse an org source string into a vector of StructuredContent.
     pub fn parse(&self, org_source: &str) -> Vec<StructuredContent> {
         let parse = ParseConfig {
@@ -611,6 +660,14 @@ impl HTMLExportConfiguration {
                             return vec![];
                         }
 
+                        if ["old", "new"].contains(
+                            &flavor_str.to_lowercase().as_str(),
+                        ) {
+                            // This is a suggestion subblock, which is
+                            // handled in the super block.
+                            return vec![];
+                        }
+
                         let content = b
                             .syntax()
                             .children_with_tokens()
@@ -643,90 +700,6 @@ impl HTMLExportConfiguration {
                                 content,
                             }];
                         }
-
-                        let flavor = match flavor_str.as_str() {
-                            "theorem" => BlockFlavor::Theorem,
-                            "definition" => BlockFlavor::Definition,
-                            "proof" => BlockFlavor::Proof,
-                            "proposition" => BlockFlavor::Proposition,
-                            "notation" => BlockFlavor::Notation,
-                            "demo" => BlockFlavor::Example,
-                            "lemma" => BlockFlavor::Lemma,
-                            "corollary" => BlockFlavor::Corollary,
-                            "remark" => BlockFlavor::Remark,
-                            "conjecture" => BlockFlavor::Conjecture,
-                            "convention" => BlockFlavor::Convention,
-                            "axiom" => BlockFlavor::Axiom,
-                            other => BlockFlavor::Unknown(
-                                other.to_string(),
-                            ),
-                        };
-
-                        // Search for label in affiliated keywords
-                        let label = b
-                            .syntax()
-                            .children()
-                            .filter(|c| {
-                                c.kind() == AFFILIATED_KEYWORD
-                            })
-                            .filter_map(|c| {
-                                let k = AffiliatedKeyword::cast(
-                                    c.clone(),
-                                )?;
-                                if k.raw()
-                                    .to_lowercase()
-                                    .starts_with("#+label:")
-                                {
-                                    Some(
-                                        k.raw()[8..]
-                                            .trim()
-                                            .to_string(),
-                                    )
-                                } else {
-                                    None
-                                }
-                            })
-                            .next();
-
-                        let mut verified_iter = b
-                            .syntax()
-                            .children()
-                            .filter(|c| {
-                                c.kind() == AFFILIATED_KEYWORD
-                            })
-                            .filter_map(|c| {
-                                let k = AffiliatedKeyword::cast(
-                                    c.clone(),
-                                )?;
-                                if k.raw()
-                                    .to_lowercase()
-                                    .starts_with("#+verified:")
-                                {
-                                    Some(true)
-                                } else if k
-                                    .raw()
-                                    .to_lowercase()
-                                    .starts_with("#+unverified:")
-                                {
-                                    Some(false)
-                                } else {
-                                    None
-                                }
-                            });
-
-                        let verified = match (
-                            verified_iter.next(),
-                            verified_iter.next(),
-                        ) {
-                            (None, _) => None,
-                            (Some(v), None) => Some(v),
-                            (Some(_), Some(_)) => {
-                                warn!(
-                                    "Multiple verified/unverified keywords found. Defaulting to unverified."
-                                );
-                                Some(false)
-                            }
-                        };
 
                         let name = b
                             .syntax()
@@ -789,6 +762,116 @@ impl HTMLExportConfiguration {
                                           })
                                         .flat_map(|c| self.convert_node(&c))
                                         .collect::<Vec<_>>()));
+
+                        // Search for label in affiliated keywords
+                        let label = b
+                            .syntax()
+                            .children()
+                            .filter(|c| {
+                                c.kind() == AFFILIATED_KEYWORD
+                            })
+                            .filter_map(|c| {
+                                let k = AffiliatedKeyword::cast(
+                                    c.clone(),
+                                )?;
+                                if k.raw()
+                                    .to_lowercase()
+                                    .starts_with("#+label:")
+                                {
+                                    Some(
+                                        k.raw()[8..]
+                                            .trim()
+                                            .to_string(),
+                                    )
+                                } else {
+                                    None
+                                }
+                            })
+                            .next();
+
+                        if flavor_str.to_lowercase() == "suggestion" {
+                            // Search for the suggestion_old and suggestion_new subblocks and extract their content
+                            // The content is empty if the subblock is not found.
+                            let old_content = self
+                                .extract_subblock_content(&b, "old");
+                            let new_content = self
+                                .extract_subblock_content(&b, "new");
+
+                            let optional_comment =
+                                if content.len() > 0 {
+                                    Some(content)
+                                } else {
+                                    None
+                                };
+
+                            return vec![
+                                StructuredContent::Suggestion {
+                                    old: old_content,
+                                    new: new_content,
+                                    comment: optional_comment,
+                                    name,
+                                    label,
+                                },
+                            ];
+                        }
+
+                        let flavor = match flavor_str.as_str() {
+                            "theorem" => BlockFlavor::Theorem,
+                            "definition" => BlockFlavor::Definition,
+                            "proof" => BlockFlavor::Proof,
+                            "proposition" => BlockFlavor::Proposition,
+                            "notation" => BlockFlavor::Notation,
+                            "demo" => BlockFlavor::Example,
+                            "lemma" => BlockFlavor::Lemma,
+                            "corollary" => BlockFlavor::Corollary,
+                            "remark" => BlockFlavor::Remark,
+                            "conjecture" => BlockFlavor::Conjecture,
+                            "convention" => BlockFlavor::Convention,
+                            "axiom" => BlockFlavor::Axiom,
+                            other => BlockFlavor::Unknown(
+                                other.to_string(),
+                            ),
+                        };
+
+                        let mut verified_iter = b
+                            .syntax()
+                            .children()
+                            .filter(|c| {
+                                c.kind() == AFFILIATED_KEYWORD
+                            })
+                            .filter_map(|c| {
+                                let k = AffiliatedKeyword::cast(
+                                    c.clone(),
+                                )?;
+                                if k.raw()
+                                    .to_lowercase()
+                                    .starts_with("#+verified:")
+                                {
+                                    Some(true)
+                                } else if k
+                                    .raw()
+                                    .to_lowercase()
+                                    .starts_with("#+unverified:")
+                                {
+                                    Some(false)
+                                } else {
+                                    None
+                                }
+                            });
+
+                        let verified = match (
+                            verified_iter.next(),
+                            verified_iter.next(),
+                        ) {
+                            (None, _) => None,
+                            (Some(v), None) => Some(v),
+                            (Some(_), Some(_)) => {
+                                warn!(
+                                    "Multiple verified/unverified keywords found. Defaulting to unverified."
+                                );
+                                Some(false)
+                            }
+                        };
 
                         return vec![StructuredContent::Block {
                             flavor,
