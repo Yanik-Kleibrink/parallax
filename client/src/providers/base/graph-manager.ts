@@ -126,11 +126,17 @@ export class GraphManager {
   /**
    * Returns the initial position for a node based on its key. If a cached position exists, it will be used; otherwise, a hash of the key will be used to generate a position.
    */
-  initialPosition(key: string): { x: number; y: number } {
+  initialPosition(key: string, near?: string): { x: number; y: number } {
     // If we have a cached position, use it.
     const position = this.positionOverride[key];
     if (position) {
       return position;
+    }
+    // Place the node next to its parent, with a small deterministic offset.
+    if (near && this.graph.hasNode(near)) {
+      const { x, y } = this.graph.getNodeAttributes(near);
+      const offset = hashToXY(key);
+      return { x: x + (offset.x - 500) / 50, y: y + (offset.y - 500) / 50 };
     }
     // Otherwise, use a hash of the key to generate a position.
     return hashToXY(key);
@@ -214,7 +220,7 @@ export class GraphManager {
         this.graph.mergeNodeAttributes(key, newAttributes);
       } else {
         this.graph.addNode(key, {
-          ...this.initialPosition(key),
+          ...this.initialPosition(key, parentID),
           ...newAttributes,
         } as NodeAttributes);
         relayoutNeeded = true;
