@@ -435,6 +435,17 @@ export class GraphManager {
   }
 
   /**
+   * Stops the layout and all timers so that the graph manager can be discarded.
+   */
+  dispose() {
+    this.layout?.kill();
+    this.layout = null;
+    if (this.interval) clearInterval(this.interval);
+    if (this.timeout) clearTimeout(this.timeout);
+    this.callback = null;
+  }
+
+  /**
    * Debounced version of resyncLayout to prevent excessive calls during rapid updates.
    */
   debouncedResyncLayout = debounce(this.resyncLayout.bind(this), 1000);
