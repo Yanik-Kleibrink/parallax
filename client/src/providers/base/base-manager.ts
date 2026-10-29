@@ -155,7 +155,7 @@ export class BaseManager {
         this.populateGraphManagerDefault(this.graphManager);
 
         // Don't recompute these positions if they are less than 24 hours old. This is to avoid recomputing the positions too often, which can be expensive.
-        if (timestamp < Date.now() - 24 * 60 * 1000) {
+        if (timestamp < Date.now() - 24 * 60 * 60 * 1000) {
           console.info(
             "Cached positions are older than 24 hours, recomputing positions"
           );
