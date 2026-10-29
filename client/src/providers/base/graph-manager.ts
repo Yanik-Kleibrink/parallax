@@ -119,6 +119,11 @@ export class GraphManager {
    **/
   callback: ((graph: Graph) => void) | null = null;
 
+  /**
+   * Set once the graph manager is discarded, so that pending relayouts do not restart the layout.
+   */
+  disposed: boolean = false;
+
   constructor(positionOverride: Record<string, { x: number; y: number }> = {}) {
     this.positionOverride = positionOverride;
   }
@@ -394,6 +399,9 @@ export class GraphManager {
    * Note that this function also starts an interval to inform the clients about changes to the layout and graph.
    */
   async resyncLayout() {
+    if (this.disposed) {
+      return;
+    }
     if (this.layout) {
       this.layout.kill(); // Stop the layout if it's running
       this.layout = null; // Clear the layout reference
@@ -434,6 +442,7 @@ export class GraphManager {
    * Stops the layout and all timers so that the graph manager can be discarded.
    */
   dispose() {
+    this.disposed = true;
     this.layout?.kill();
     this.layout = null;
     if (this.interval) clearInterval(this.interval);
