@@ -119,6 +119,11 @@ export class GraphManager {
    **/
   callback: ((graph: Graph) => void) | null = null;
 
+  /**
+   * Set once the graph manager is discarded, so that pending relayouts do not restart the layout.
+   */
+  disposed: boolean = false;
+
   constructor(positionOverride: Record<string, { x: number; y: number }> = {}) {
     this.positionOverride = positionOverride;
   }
@@ -126,11 +131,17 @@ export class GraphManager {
   /**
    * Returns the initial position for a node based on its key. If a cached position exists, it will be used; otherwise, a hash of the key will be used to generate a position.
    */
-  initialPosition(key: string): { x: number; y: number } {
+  initialPosition(key: string, near?: string): { x: number; y: number } {
     // If we have a cached position, use it.
     const position = this.positionOverride[key];
     if (position) {
       return position;
+    }
+    // Place the node next to its parent, with a small deterministic offset.
+    if (near && this.graph.hasNode(near)) {
+      const { x, y } = this.graph.getNodeAttributes(near);
+      const offset = hashToXY(key);
+      return { x: x + (offset.x - 500) / 50, y: y + (offset.y - 500) / 50 };
     }
     // Otherwise, use a hash of the key to generate a position.
     return hashToXY(key);
@@ -214,7 +225,7 @@ export class GraphManager {
         this.graph.mergeNodeAttributes(key, newAttributes);
       } else {
         this.graph.addNode(key, {
-          ...this.initialPosition(key),
+          ...this.initialPosition(key, parentID),
           ...newAttributes,
         } as NodeAttributes);
         relayoutNeeded = true;
@@ -257,18 +268,7 @@ export class GraphManager {
       }
     }
 
-    // Mark all nodes and their outgoing edges as stale.
-    this.graph.forEachNode((nodeKey) => {
-      if (nodeKey.includes(item.key)) {
-        // Mark node as stale
-        this.graph.mergeNodeAttributes(nodeKey, { staleNode: true });
-        this.graph.outEdges(nodeKey).forEach((edgeKey) => {
-          this.graph.mergeEdgeAttributes(edgeKey, {
-            staleEdge: true,
-          });
-        });
-      }
-    });
+    this.markItemStale(item.key);
 
     if (item.flavor !== "Constituent") {
       // Currently a relayout is only triggered if a new node appeared. A removal does not trigger it.
@@ -318,17 +318,7 @@ export class GraphManager {
       }
     }
 
-    // Delete stale nodes and edges after processing the item.
-    this.graph.forEachNode((nodeKey, attributes) => {
-      if (attributes.staleNode) {
-        this.graph.dropNode(nodeKey);
-      }
-    });
-    this.graph.forEachEdge((edgeKey, edgeAttributes) => {
-      if (edgeAttributes.staleEdge) {
-        this.graph.dropEdge(edgeKey);
-      }
-    });
+    this.dropStaleNodesAndEdges();
   }
 
   /**
@@ -338,10 +328,17 @@ export class GraphManager {
   removeItem(itemKey: string) {
     console.debug("Removing item from graph manager:", itemKey);
 
-    // Mark all nodes and their outgoing edges as stale.
+    this.markItemStale(itemKey);
+    this.dropStaleNodesAndEdges();
+  }
+
+  /**
+   * Marks the nodes of an item (the item itself and its tags) and their outgoing edges as stale.
+   * @param itemKey - The key of the item.
+   */
+  markItemStale(itemKey: string) {
     this.graph.forEachNode((nodeKey) => {
-      if (nodeKey.includes(itemKey)) {
-        // Mark node as stale
+      if (nodeKey === itemKey || nodeKey.startsWith(`${itemKey}.`)) {
         this.graph.mergeNodeAttributes(nodeKey, { staleNode: true });
         this.graph.outEdges(nodeKey).forEach((edgeKey) => {
           this.graph.mergeEdgeAttributes(edgeKey, {
@@ -350,8 +347,12 @@ export class GraphManager {
         });
       }
     });
+  }
 
-    // Delete stale nodes and edges after processing the item.
+  /**
+   * Drops all nodes and edges that are still marked as stale.
+   */
+  dropStaleNodesAndEdges() {
     this.graph.forEachNode((nodeKey, attributes) => {
       if (attributes.staleNode) {
         this.graph.dropNode(nodeKey);
@@ -398,6 +399,9 @@ export class GraphManager {
    * Note that this function also starts an interval to inform the clients about changes to the layout and graph.
    */
   async resyncLayout() {
+    if (this.disposed) {
+      return;
+    }
     if (this.layout) {
       this.layout.kill(); // Stop the layout if it's running
       this.layout = null; // Clear the layout reference
@@ -432,6 +436,18 @@ export class GraphManager {
         clearInterval(this.interval); // Clear the interval when stopping the layout
       }
     }, 120000); // Adjust the time as needed
+  }
+
+  /**
+   * Stops the layout and all timers so that the graph manager can be discarded.
+   */
+  dispose() {
+    this.disposed = true;
+    this.layout?.kill();
+    this.layout = null;
+    if (this.interval) clearInterval(this.interval);
+    if (this.timeout) clearTimeout(this.timeout);
+    this.callback = null;
   }
 
   /**
