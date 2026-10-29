@@ -263,18 +263,7 @@ export class GraphManager {
       }
     }
 
-    // Mark all nodes and their outgoing edges as stale.
-    this.graph.forEachNode((nodeKey) => {
-      if (nodeKey === item.key || nodeKey.startsWith(`${item.key}.`)) {
-        // Mark node as stale
-        this.graph.mergeNodeAttributes(nodeKey, { staleNode: true });
-        this.graph.outEdges(nodeKey).forEach((edgeKey) => {
-          this.graph.mergeEdgeAttributes(edgeKey, {
-            staleEdge: true,
-          });
-        });
-      }
-    });
+    this.markItemStale(item.key);
 
     if (item.flavor !== "Constituent") {
       // Currently a relayout is only triggered if a new node appeared. A removal does not trigger it.
@@ -324,17 +313,7 @@ export class GraphManager {
       }
     }
 
-    // Delete stale nodes and edges after processing the item.
-    this.graph.forEachNode((nodeKey, attributes) => {
-      if (attributes.staleNode) {
-        this.graph.dropNode(nodeKey);
-      }
-    });
-    this.graph.forEachEdge((edgeKey, edgeAttributes) => {
-      if (edgeAttributes.staleEdge) {
-        this.graph.dropEdge(edgeKey);
-      }
-    });
+    this.dropStaleNodesAndEdges();
   }
 
   /**
@@ -344,10 +323,17 @@ export class GraphManager {
   removeItem(itemKey: string) {
     console.debug("Removing item from graph manager:", itemKey);
 
-    // Mark all nodes and their outgoing edges as stale.
+    this.markItemStale(itemKey);
+    this.dropStaleNodesAndEdges();
+  }
+
+  /**
+   * Marks the nodes of an item (the item itself and its tags) and their outgoing edges as stale.
+   * @param itemKey - The key of the item.
+   */
+  markItemStale(itemKey: string) {
     this.graph.forEachNode((nodeKey) => {
       if (nodeKey === itemKey || nodeKey.startsWith(`${itemKey}.`)) {
-        // Mark node as stale
         this.graph.mergeNodeAttributes(nodeKey, { staleNode: true });
         this.graph.outEdges(nodeKey).forEach((edgeKey) => {
           this.graph.mergeEdgeAttributes(edgeKey, {
@@ -356,8 +342,12 @@ export class GraphManager {
         });
       }
     });
+  }
 
-    // Delete stale nodes and edges after processing the item.
+  /**
+   * Drops all nodes and edges that are still marked as stale.
+   */
+  dropStaleNodesAndEdges() {
     this.graph.forEachNode((nodeKey, attributes) => {
       if (attributes.staleNode) {
         this.graph.dropNode(nodeKey);
