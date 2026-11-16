@@ -155,11 +155,12 @@ export class BaseManager {
         this.populateGraphManagerDefault(this.graphManager);
 
         // Don't recompute these positions if they are less than 24 hours old. This is to avoid recomputing the positions too often, which can be expensive.
-        if (timestamp < Date.now() - 24 * 60 * 1000) {
+        if (timestamp < Date.now() - 24 * 60 * 60 * 1000) {
           console.info(
             "Cached positions are older than 24 hours, recomputing positions"
           );
           // Create the backup graph manager
+          this.backupGraphManager?.dispose();
           this.backupGraphManager = new GraphManager();
           this.populateGraphManagerDefault(this.backupGraphManager);
 
@@ -169,7 +170,7 @@ export class BaseManager {
               console.info(
                 "Replacing graph manager with backup graph manager after 5 minutes"
               );
-              this.graphManager?.setCallbackFunction(() => {}); // Disable the callback function of the current graph manager
+              this.graphManager?.dispose(); // Stop the layout of the current graph manager
               this.graphManager = this.backupGraphManager;
               this.graphManager!.setCallbackFunction(
                 this.graphCallbackFunction.bind(this)
