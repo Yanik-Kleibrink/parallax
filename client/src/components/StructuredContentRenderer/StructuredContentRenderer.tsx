@@ -19,6 +19,7 @@ import { Highlight, themes } from "prism-react-renderer";
 import Prism from "prismjs";
 
 import "./StructuredContentRenderer.scss";
+import "./TQFFanout.scss";
 
 /**
  * A context that tracks important information during the rendering of structured content.

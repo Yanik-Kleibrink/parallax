@@ -11,6 +11,12 @@ content can be printed nicely.
   height: auto;
 }
 
+// No container queries: TQFs stay inline (below) with their full content,
+// and the sidebar layout (collapsed details, stacking, fan-out) is off.
+.node-content-container {
+  container: none;
+}
+
 .structured-content__tqf {
   position: static;
   width: auto;
