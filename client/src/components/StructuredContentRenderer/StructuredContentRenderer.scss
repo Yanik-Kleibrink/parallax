@@ -491,7 +491,10 @@ h6 {
     interpolate-size: allow-keywords;
   }
 
-  .structured-content__tqf > :not(:first-child) {
+  .structured-content__tqf:where(
+      :has(> .structured-content__paragraph:first-child)
+    )
+    > :not(:first-child) {
     height: 0;
     overflow: hidden;
     margin-block: 0;
