@@ -1,5 +1,6 @@
 // Work items (TQFs) in the sidebar are absolutely positioned. Every TQF that
-// follows another one is anchored to the bottom of its predecessor. A run of
+// follows another one is anchored to the bottom of its predecessor (inline,
+// it follows it in the flow). A run of
 // consecutive TQFs is stacked: each item except the last is cut to its
 // padding and border, and the next item is pulled up over it so that only a
 // strip shows. While one item of a run is hovered or focused, the run fans
@@ -34,7 +35,8 @@ $run: "#{$tqf}:is(#{$active}, #{$active} ~ :not(#{$active} ~ :not(#{$tqf}) ~ *),
     box-shadow 0.22s ease;
 }
 
-@container structured-content-container not (max-width: #{$breakpoint-inline-tqfs}) {
+// Sidebar and inline (the OnAsset page has no container, so neither applies).
+@container structured-content-container (min-width: 0) {
   // Anchor names stay within the parent, so a TQF never anchors to one in a
   // nested block. Among equal names, the nearest earlier sibling wins.
   :has(> #{$tqf}) {
@@ -55,9 +57,12 @@ $run: "#{$tqf}:is(#{$active}, #{$active} ~ :not(#{$active} ~ :not(#{$tqf}) ~ *),
   }
 
   #{$tqf} + #{$tqf} {
-    position-anchor: --tqf;
-    top: anchor(bottom);
     margin-block-start: calc(#{$tqf-stagger} - #{$tqf-min-height});
+
+    @container structured-content-container not (max-width: #{$breakpoint-inline-tqfs}) {
+      position-anchor: --tqf;
+      top: anchor(bottom);
+    }
   }
 
   // Stacked: no item pokes out below the ones covering it.

@@ -415,6 +415,8 @@ export function StructuredContentRenderer({
     return (
       <div
         className={`structured-content__tqf structured-content__tqf--${content.TQF.flavor.toLowerCase()}`}
+        // Focusable, so that a tap (touch devices) opens the TQF and its run via :focus-within.
+        tabIndex={0}
       >
         {content.TQF.content.map((subContent, index) => (
           <StructuredContentRenderer

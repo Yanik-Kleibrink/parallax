@@ -475,15 +475,23 @@ h6 {
   }
 }
 
+// Inline TQFs are positioned (relative) so that they paint in tree order
+// and stack as in the sidebar (see TQFFanout.scss).
 @container structured-content-container (max-width: #{$breakpoint-inline-tqfs}) {
   .structured-content__tqf {
-    position: static;
+    position: relative;
+    left: auto;
     width: auto;
     margin: 1rem 0 2rem;
   }
+
+  .structured-content__tqf:has(+ .structured-content__tqf) {
+    margin-block-end: 0;
+  }
 }
 
-@container structured-content-container not (max-width: #{$breakpoint-inline-tqfs}) {
+// Sidebar and inline (the OnAsset page has no container, so neither applies).
+@container structured-content-container (min-width: 0) {
   .structured-content__tqf {
     interpolate-size: allow-keywords;
   }
