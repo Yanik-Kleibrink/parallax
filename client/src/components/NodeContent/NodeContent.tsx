@@ -1,5 +1,5 @@
 import { BaseManagerContext } from "@/providers";
-import { StructuredContentRenderer } from "@/components";
+import { StructuredContentList } from "@/components";
 import type { Item, StructuredContent } from "@/models";
 import { getNode } from "@/utils";
 
@@ -90,18 +90,16 @@ export function NodeContent({
     <div ref={scrollRef} className="node-content-wrapper">
       <div className="node-content-container">
         <div className="node-content">
-          {nodeContent &&
-            nodeContent.map((content, index) => (
-              <StructuredContentRenderer
-                key={index}
-                content={content}
-                context={{
-                  depth: 0,
-                  openReference: nodePreviewFunction,
-                  handleContentRender: handleContentRender,
-                }}
-              />
-            ))}
+          {nodeContent && (
+            <StructuredContentList
+              contents={nodeContent}
+              context={{
+                depth: 0,
+                openReference: nodePreviewFunction,
+                handleContentRender: handleContentRender,
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

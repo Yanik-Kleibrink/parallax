@@ -19,7 +19,7 @@ import { Highlight, themes } from "prism-react-renderer";
 import Prism from "prismjs";
 
 import "./StructuredContentRenderer.scss";
-import "./TQFFanout.scss";
+import { TQFStack } from "./TQFStack";
 
 /**
  * A context that tracks important information during the rendering of structured content.
@@ -69,13 +69,10 @@ export function StructuredContentRenderer({
             />
           ))}
         </Headline>
-        {content.Section.content.map((subContent, index) => (
-          <StructuredContentRenderer
-            key={index}
-            content={subContent}
-            context={{ ...context, depth: context.depth + 1 }}
-          />
-        ))}
+        <StructuredContentList
+          contents={content.Section.content}
+          context={{ ...context, depth: context.depth + 1 }}
+        />
       </div>
     );
   }
@@ -111,13 +108,10 @@ export function StructuredContentRenderer({
             ))}
           </span>
         </Headline>
-        {content.ProgressSection.content.map((subContent, index) => (
-          <StructuredContentRenderer
-            key={index}
-            content={subContent}
-            context={{ ...context, depth: context.depth + 1 }}
-          />
-        ))}
+        <StructuredContentList
+          contents={content.ProgressSection.content}
+          context={{ ...context, depth: context.depth + 1 }}
+        />
       </div>
     );
   }
@@ -195,13 +189,10 @@ export function StructuredContentRenderer({
             )}
           </div>
         )}
-        {content.Block.content.map((subContent, index) => (
-          <StructuredContentRenderer
-            key={index}
-            content={subContent}
-            context={{ ...context, depth: context.depth + 1 }}
-          />
-        ))}
+        <StructuredContentList
+          contents={content.Block.content}
+          context={{ ...context, depth: context.depth + 1 }}
+        />
       </div>
     );
   }
@@ -215,24 +206,18 @@ export function StructuredContentRenderer({
       >
         {content.Suggestion.name && (
           <div className="structured-content__suggestion__name">
-            {content.Suggestion.name.map((subContent, index) => (
-              <StructuredContentRenderer
-                key={index}
-                content={subContent}
-                context={{ ...context, depth: context.depth + 1 }}
-              />
-            ))}
+            <StructuredContentList
+              contents={content.Suggestion.name}
+              context={{ ...context, depth: context.depth + 1 }}
+            />
           </div>
         )}
         {content.Suggestion.comment && (
           <div className="structured-content__suggestion__comment">
-            {content.Suggestion.comment.map((subContent, index) => (
-              <StructuredContentRenderer
-                key={index}
-                content={subContent}
-                context={{ ...context, depth: context.depth + 1 }}
-              />
-            ))}
+            <StructuredContentList
+              contents={content.Suggestion.comment}
+              context={{ ...context, depth: context.depth + 1 }}
+            />
           </div>
         )}
         {(content.Suggestion.old || content.Suggestion.new) && (
@@ -241,24 +226,18 @@ export function StructuredContentRenderer({
           >
             {content.Suggestion.old && (
               <div className="structured-content__suggestion__replacement__old">
-                {content.Suggestion.old.map((subContent, index) => (
-                  <StructuredContentRenderer
-                    key={index}
-                    content={subContent}
-                    context={{ ...context, depth: context.depth + 1 }}
-                  />
-                ))}
+                <StructuredContentList
+                  contents={content.Suggestion.old}
+                  context={{ ...context, depth: context.depth + 1 }}
+                />
               </div>
             )}
             {content.Suggestion.new && (
               <div className="structured-content__suggestion__replacement__new">
-                {content.Suggestion.new.map((subContent, index) => (
-                  <StructuredContentRenderer
-                    key={index}
-                    content={subContent}
-                    context={{ ...context, depth: context.depth + 1 }}
-                  />
-                ))}
+                <StructuredContentList
+                  contents={content.Suggestion.new}
+                  context={{ ...context, depth: context.depth + 1 }}
+                />
               </div>
             )}
           </div>
@@ -415,16 +394,13 @@ export function StructuredContentRenderer({
     return (
       <div
         className={`structured-content__tqf structured-content__tqf--${content.TQF.flavor.toLowerCase()}`}
-        // Focusable, so that a tap (touch devices) opens the TQF and its run via :focus-within.
+        // This makes the card focusable, so that a stack stays open after a tap and can be used with the keyboard (see TQFStackScroll.ts).
         tabIndex={0}
       >
-        {content.TQF.content.map((subContent, index) => (
-          <StructuredContentRenderer
-            key={index}
-            content={subContent}
-            context={{ ...context, depth: context.depth + 1 }}
-          />
-        ))}
+        <StructuredContentList
+          contents={content.TQF.content}
+          context={{ ...context, depth: context.depth + 1 }}
+        />
       </div>
     );
   }
@@ -433,16 +409,10 @@ export function StructuredContentRenderer({
       <ul className="structured-content__itemize">
         {content.Itemize.items.map((item, index) => (
           <li key={index} className="structured-content__itemize-item">
-            {item.map((subContent, subIndex) => (
-              <StructuredContentRenderer
-                key={subIndex}
-                content={subContent}
-                context={{
-                  ...context,
-                  depth: context.depth + 1,
-                }}
-              />
-            ))}
+            <StructuredContentList
+              contents={item}
+              context={{ ...context, depth: context.depth + 1 }}
+            />
           </li>
         ))}
       </ul>
@@ -453,6 +423,73 @@ export function StructuredContentRenderer({
   }
 
   return null;
+}
+
+/**
+ * Get a short hash of structured content, e.g. to key it by its content.
+ * @param content The structured content.
+ * @returns The hash.
+ */
+function contentHash(content: StructuredContent): string {
+  const text = JSON.stringify(content);
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (Math.imul(hash, 31) + text.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * This component renders a list of block content.
+ *
+ * Every run of consecutive TQFs goes into one TQFStack, so that it stacks and scrolls as a whole.
+ * @param contents The block content to render.
+ * @param context The rendering context that is passed to every item.
+ */
+export function StructuredContentList({
+  contents,
+  context,
+}: {
+  contents: StructuredContent[];
+  context: StructuredContentRendererContext;
+}) {
+  const elements: JSX.Element[] = [];
+  // Stacks are keyed by their order and cards by their content, not by their position, so that a live edit above or inside an open stack keeps it open with the same current card.
+  let stacks = 0;
+  const cardKeys = new Map<string, number>();
+  let index = 0;
+  while (index < contents.length) {
+    if ("TQF" in contents[index]) {
+      const start = index;
+      while (index < contents.length && "TQF" in contents[index]) index++;
+      elements.push(
+        <TQFStack key={`tqf-${stacks++}`}>
+          {contents.slice(start, index).map((subContent) => {
+            const hash = contentHash(subContent);
+            const count = cardKeys.get(hash) ?? 0;
+            cardKeys.set(hash, count + 1);
+            return (
+              <StructuredContentRenderer
+                key={`${hash}-${count}`}
+                content={subContent}
+                context={context}
+              />
+            );
+          })}
+        </TQFStack>
+      );
+    } else {
+      elements.push(
+        <StructuredContentRenderer
+          key={index}
+          content={contents[index]}
+          context={context}
+        />
+      );
+      index++;
+    }
+  }
+  return <>{elements}</>;
 }
 
 /**
@@ -487,17 +524,7 @@ function Constituent({
   }, [item, context]);
 
   if (item && item.content) {
-    return (
-      <>
-        {item.content.map((subContent, index) => (
-          <StructuredContentRenderer
-            key={index}
-            content={subContent}
-            context={context}
-          />
-        ))}
-      </>
-    );
+    return <StructuredContentList contents={item.content} context={context} />;
   } else {
     return null;
   }

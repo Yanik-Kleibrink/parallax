@@ -1,0 +1,176 @@
+// This file contains the styles of the stacks of TQFs (see TQFStack.tsx and TQFStackScroll.ts).
+//
+// Every run of consecutive TQFs sits in one stack, with the cards in its track.
+// The stack sits in the sidebar next to where it would be in the flow, or inline if there is no room for the sidebar.
+// A closed stack shows a strip of each card: each card except the last is cut to its padding and border, and the next one is pulled up over it.
+// In an open stack (`data-open`), the cards fan out, each collapsed to its first line, and only the current card (`data-tqf-current`) opens in full.
+// None of this applies on the OnAsset page, which has no container.
+
+// The visible strip of each card while the stack is closed.
+$tqf-stagger: 0.5rem;
+
+// The gap between the cards while the stack is open.
+$tqf-fan-gap: 0.25rem;
+
+// The duration of fanning out and collapsing.
+$tqf-duration: 0.3s;
+
+// The wait before the stack closes again (RETURN in TQFStackScroll.ts is this plus $tqf-duration, plus a margin).
+$tqf-return-delay: 0.3s;
+
+// The smallest TQF (border-box, `height: 0`) consists of padding and border, as in the main stylesheet.
+// No TQF is shorter, so no card pokes out below the last.
+$tqf-min-height: calc(2 * 0.9rem + 2px);
+
+@container structured-content-container (min-width: 0) {
+  .structured-content__tqf {
+    // The details of a card fold and unfold in these properties.
+    > :not(:first-child) {
+      transition-property:
+        height, margin-block, padding-block, border-block-width;
+      transition-duration: $tqf-duration;
+    }
+
+    // This collapses a TQF to its first line, except for the current card of an open stack.
+    // Padding and borders go as well, as a block inside a TQF has padding.
+    &:where(
+        :has(> .structured-content__paragraph:first-child):not(
+          [data-tqf-current]
+        )
+      )
+      > :not(:first-child) {
+      height: 0;
+      overflow: hidden;
+      margin-block: 0;
+      padding-block: 0;
+      border-block-width: 0;
+    }
+
+    // A stack inside a card stays inline in the card.
+    .structured-content__tqf-stack {
+      margin: 0.5rem 0;
+    }
+  }
+
+  // This ensures that the layout inside a stack (cards opening and closing) stays inside it.
+  // Cards and their details fold between `height: 0` and `height: auto` (inherited).
+  .structured-content__tqf-stack {
+    position: relative;
+    margin: 1rem 0 2rem;
+    contain: layout;
+    z-index: 1;
+    interpolate-size: allow-keywords;
+
+    // In the sidebar, a stack sits next to where it would be in the flow (but not a stack inside a card).
+    &:not(.structured-content__tqf *) {
+      @container structured-content-container not (max-width: #{$breakpoint-inline-tqfs}) {
+        position: absolute;
+        left: calc(100% + 2.5rem);
+        width: min(calc(100cqw - $max-width - 2.5rem), 0.5 * $max-width);
+        margin: 0;
+      }
+    }
+
+    // While the stack is open (and until its cards are back), it is above the page, keeps its closed height (set by TQFStackScroll.ts), and the track floats above the page.
+    &[data-floating] {
+      z-index: 20;
+
+      > .structured-content__tqf-track {
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+      }
+    }
+
+    // An open stack is above one whose cards are on their way back. TQFStackScroll.ts moves its track every frame, so the track does not animate.
+    &[data-open] {
+      z-index: 21;
+
+      > .structured-content__tqf-track {
+        transition: none;
+
+        // Every card shows its first line and the current one opens in full.
+        > .structured-content__tqf {
+          height: auto;
+          transition-delay: 0s;
+
+          &:not(:first-child) {
+            margin-block-start: $tqf-fan-gap;
+          }
+
+          // Inside an open stack, cards fold at a fixed rate, so that a tall card folds more slowly. TQFStackScroll.ts sets the duration per card.
+          > :not(:first-child) {
+            transition-duration: var(--tqf-fold);
+            transition-delay: 0s;
+          }
+
+          &[data-tqf-current] > :not(:first-child) {
+            margin-block: 0.25rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Closing waits for the return delay.
+  // The browser never pans over the cards, as swipes there scroll the stack.
+  .structured-content__tqf-track {
+    position: relative;
+    touch-action: pinch-zoom;
+    transition: translate $tqf-duration ease $tqf-return-delay;
+
+    // In a closed stack, only a strip of each card shows.
+    > .structured-content__tqf {
+      transition:
+        height $tqf-duration ease $tqf-return-delay,
+        margin-block-start $tqf-duration ease $tqf-return-delay,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+
+      &:not(:first-child) {
+        margin-block-start: calc(#{$tqf-stagger} - #{$tqf-min-height});
+      }
+
+      &:not(:last-child) {
+        height: 0;
+      }
+
+      > :not(:first-child) {
+        transition-delay: $tqf-return-delay;
+      }
+
+      // Cards far from the current one (see VISIBLE_ABOVE and VISIBLE_BELOW in TQFStackScroll.ts) keep their space but are not shown, so the stack does not cover the page.
+      &[data-tqf-hidden] {
+        visibility: hidden;
+      }
+
+      // The first hidden card on each side shows a pill with the number of hidden cards next to the visible ones: above them at its bottom, below them at its top.
+      &[data-tqf-more-above]::after,
+      &[data-tqf-more-below]::after {
+        visibility: visible;
+        position: absolute;
+        left: 50%;
+        translate: -50% 0;
+        padding: 0.05rem 0.6rem;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        white-space: nowrap;
+        color: $color-text-secondary;
+        background: $color-background;
+        border: 1px solid $color-border;
+        border-radius: 999px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      &[data-tqf-more-above]::after {
+        content: attr(data-tqf-more-above);
+        bottom: 0.25rem;
+      }
+
+      &[data-tqf-more-below]::after {
+        content: attr(data-tqf-more-below);
+        top: 0.25rem;
+      }
+    }
+  }
+}
