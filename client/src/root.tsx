@@ -1,4 +1,11 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  type MetaFunction,
+} from "react-router";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "katex/dist/katex.min.css";
@@ -11,6 +18,9 @@ import "@/styles/forms.scss";
 
 // Disable console.debug in production
 console.debug = () => {};
+
+// Default window title (pages may set their own).
+export const meta: MetaFunction = () => [{ title: "Parallax" }];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

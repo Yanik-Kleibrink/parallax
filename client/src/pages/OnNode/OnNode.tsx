@@ -1,11 +1,16 @@
 import { Sidebar, NodeView } from "@/components";
 import { BaseManagerContext } from "@/providers";
 
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, type MetaFunction } from "react-router";
 import { useState, useEffect, useContext } from "react";
 import { ArrowsAngleExpand } from "react-bootstrap-icons";
 
 import "./OnNode.scss";
+
+// Set the window title.
+export const meta: MetaFunction = ({ params }) => [
+  { title: `Parallax — ${params.node}` },
+];
 
 export default function OnNode() {
   const [layout, setLayout] = useState<"vertical" | "horizontal">("horizontal");
