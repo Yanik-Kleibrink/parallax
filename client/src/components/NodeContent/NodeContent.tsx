@@ -1,4 +1,4 @@
-import { BaseManagerContext } from "@/providers";
+import { BaseManagerContext, useRemoteScrollRoot } from "@/providers";
 import { StructuredContentList } from "@/components";
 import type { Item, StructuredContent } from "@/models";
 import { getNode } from "@/utils";
@@ -27,6 +27,7 @@ export function NodeContent({
   nodePreviewFunction?: (nodeID: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  useRemoteScrollRoot(nodeID, scrollRef);
 
   // The pending scroll target and the latest setHash live in refs, so that the render callback below stays the same function and the rendering context stays stable.
   const pendingHash = useRef<string | undefined>(undefined);

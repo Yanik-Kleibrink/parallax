@@ -1,6 +1,13 @@
-import type { StructuredContent, Item } from "@/models";
-import { BaseManagerContext, NodeIDContext } from "@/providers";
-import { ProgressIcon } from "@/utils";
+import type { StructuredContent, Item, ProgressState } from "@/models";
+import {
+  BaseManagerContext,
+  NO_SECTIONS,
+  NodeIDContext,
+  SectionContext,
+  useRemoteSection,
+  useRemoteTQF,
+} from "@/providers";
+import { convertToString, ProgressIcon } from "@/utils";
 
 import {
   memo,
@@ -16,6 +23,7 @@ import {
   ArrowRight,
   ShieldFillCheck,
   ShieldSlashFill,
+  X,
 } from "react-bootstrap-icons";
 import { Highlight, themes } from "prism-react-renderer";
 import Prism from "prismjs";
@@ -55,66 +63,24 @@ export function StructuredContentRenderer({
   const nodeID = useContext(NodeIDContext);
 
   if ("Section" in content) {
-    const headlineLevel = Math.min(context.depth + 1, 6);
-    const Headline = `h${headlineLevel}` as keyof JSX.IntrinsicElements;
     return (
-      <div className="structured-content__section">
-        <Headline
-          id={`node-${content.Section.key}`}
-          className="structured-content__section-headline"
-        >
-          {content.Section.title.map((subContent, index) => (
-            <StructuredContentRenderer
-              key={index}
-              content={subContent}
-              context={{ ...context, depth: context.depth + 1 }}
-            />
-          ))}
-        </Headline>
-        <StructuredContentList
-          contents={content.Section.content}
-          context={{ ...context, depth: context.depth + 1 }}
-        />
-      </div>
+      <Section
+        sectionKey={content.Section.key}
+        title={content.Section.title}
+        contents={content.Section.content}
+        context={context}
+      />
     );
   }
   if ("ProgressSection" in content) {
-    const headlineLevel = Math.min(context.depth + 1, 6);
-    const Headline = `h${headlineLevel}` as keyof JSX.IntrinsicElements;
     return (
-      <div className="structured-content__progress-section">
-        <Headline
-          id={`node-${content.ProgressSection.key}`}
-          className="structured-content__progress-section-headline"
-        >
-          <span className="structured-content__progress-section__title">
-            <ProgressIcon
-              progress={content.ProgressSection.state}
-              style={{
-                display: "inline",
-                marginRight: "0.5em",
-                width: "1em",
-                height: "1em",
-                verticalAlign: "-0.125em",
-              }}
-            />
-            {content.ProgressSection.title.map((subContent, index) => (
-              <StructuredContentRenderer
-                key={index}
-                content={subContent}
-                context={{
-                  ...context,
-                  depth: context.depth + 1,
-                }}
-              />
-            ))}
-          </span>
-        </Headline>
-        <StructuredContentList
-          contents={content.ProgressSection.content}
-          context={{ ...context, depth: context.depth + 1 }}
-        />
-      </div>
+      <Section
+        sectionKey={content.ProgressSection.key}
+        title={content.ProgressSection.title}
+        contents={content.ProgressSection.content}
+        progress={content.ProgressSection.state}
+        context={context}
+      />
     );
   }
   if ("Paragraph" in content) {
@@ -393,18 +359,7 @@ export function StructuredContentRenderer({
     );
   }
   if ("TQF" in content) {
-    return (
-      <div
-        className={`structured-content__tqf structured-content__tqf--${content.TQF.flavor.toLowerCase()}`}
-        // This makes the card focusable, so that a stack stays open after a tap and can be used with the keyboard (see TQFStackScroll.ts).
-        tabIndex={0}
-      >
-        <StructuredContentList
-          contents={content.TQF.content}
-          context={{ ...context, depth: context.depth + 1 }}
-        />
-      </div>
-    );
+    return <TQF tqf={content.TQF} context={context} />;
   }
   if ("Itemize" in content) {
     return (
@@ -425,6 +380,133 @@ export function StructuredContentRenderer({
   }
 
   return null;
+}
+
+/**
+ * This component renders a section or a progress section with its headline and its contents.
+ *
+ * The headline is registered with the remote control, and the section passes its path to the sections inside it (see SectionContext).
+ * @param sectionKey The key of the section.
+ * @param title The title of the section.
+ * @param contents The contents of the section.
+ * @param progress The progress state, for a progress section.
+ * @param context The rendering context.
+ */
+function Section({
+  sectionKey,
+  title,
+  contents,
+  progress,
+  context,
+}: {
+  sectionKey: string;
+  title: StructuredContent[];
+  contents: StructuredContent[];
+  progress?: ProgressState;
+  context: StructuredContentRendererContext;
+}) {
+  const { path, headlineRef } = useRemoteSection(
+    sectionKey,
+    convertToString(title)
+  );
+
+  const headlineLevel = Math.min(context.depth + 1, 6);
+  // Any headline level has the props of h1, including a ref to an HTMLHeadingElement.
+  const Headline = `h${headlineLevel}` as "h1";
+  const kind = progress ? "progress-section" : "section";
+  const titleElements = title.map((subContent, index) => (
+    <StructuredContentRenderer
+      key={index}
+      content={subContent}
+      context={{ ...context, depth: context.depth + 1 }}
+    />
+  ));
+
+  return (
+    <div className={`structured-content__${kind}`}>
+      <Headline
+        ref={headlineRef}
+        id={`node-${sectionKey}`}
+        className={`structured-content__${kind}-headline`}
+      >
+        {progress ? (
+          <span className="structured-content__progress-section__title">
+            <ProgressIcon
+              progress={progress}
+              style={{
+                display: "inline",
+                marginRight: "0.5em",
+                width: "1em",
+                height: "1em",
+                verticalAlign: "-0.125em",
+              }}
+            />
+            {titleElements}
+          </span>
+        ) : (
+          titleElements
+        )}
+      </Headline>
+      <SectionContext value={path}>
+        <StructuredContentList
+          contents={contents}
+          context={{ ...context, depth: context.depth + 1 }}
+        />
+      </SectionContext>
+    </div>
+  );
+}
+
+/**
+ * This component renders a TQF as a card.
+ *
+ * While the remote control emphasizes it, the card pulses, and a TQF with an ID shows an X that dismisses it.
+ * The X comes after the content, as the first child of the card is its summary line, which a folded card keeps (TQFStack.scss and TQFStackScroll.ts).
+ * @param tqf The TQF.
+ * @param context The rendering context.
+ */
+function TQF({
+  tqf,
+  context,
+}: {
+  tqf: Extract<StructuredContent, { TQF: unknown }>["TQF"];
+  context: StructuredContentRendererContext;
+}) {
+  const { pulsing, dismissible, dismiss } = useRemoteTQF(tqf.id);
+
+  return (
+    <div
+      className={[
+        "structured-content__tqf",
+        `structured-content__tqf--${tqf.flavor.toLowerCase()}`,
+        pulsing && "structured-content__tqf--pulse",
+        dismissible && "structured-content__tqf--dismissible",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      // This makes the card focusable, so that a stack stays open after a tap and can be used with the keyboard (see TQFStackScroll.ts).
+      tabIndex={0}
+    >
+      <StructuredContentList
+        contents={tqf.content}
+        context={{ ...context, depth: context.depth + 1 }}
+      />
+      {dismissible && (
+        <button
+          type="button"
+          className="structured-content__tqf-dismiss"
+          aria-label="Dismiss"
+          title="Dismiss"
+          onClick={(event) => {
+            event.stopPropagation();
+            dismiss();
+          }}
+        >
+          <X />
+        </button>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -526,8 +608,15 @@ function Constituent({
     handleContentRender.current?.();
   }, [item]);
 
+  // The constituent's sections and TQFs belong to the constituent, not to the item that includes it, and its section paths start at its own sections (the remote control matches them against its file).
   if (item && item.content) {
-    return <StructuredContentList contents={item.content} context={context} />;
+    return (
+      <NodeIDContext value={name}>
+        <SectionContext value={NO_SECTIONS}>
+          <StructuredContentList contents={item.content} context={context} />
+        </SectionContext>
+      </NodeIDContext>
+    );
   } else {
     return null;
   }

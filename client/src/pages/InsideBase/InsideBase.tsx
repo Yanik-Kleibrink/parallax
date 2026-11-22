@@ -1,6 +1,11 @@
-import { BaseManager, BaseManagerContext, getBase } from "@/providers";
+import {
+  BaseManager,
+  BaseManagerContext,
+  getBase,
+  RemoteControlContext,
+} from "@/providers";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Outlet } from "react-router";
 import { useParams } from "react-router";
 
@@ -11,6 +16,7 @@ export default function InsideBase() {
   console.log("Base component params:", base);
 
   const [baseManager, setBaseManager] = useState<BaseManager | null>(null);
+  const remote = useContext(RemoteControlContext);
 
   useEffect(() => {
     if (!base) return;
@@ -25,6 +31,19 @@ export default function InsideBase() {
       });
     });
   }, [base]);
+
+  // The remote control names the base by its ID and server as well, and forgets it when the window leaves the base.
+  useEffect(() => {
+    if (!baseManager) return;
+    const unsubscribe = baseManager.subscribeBase((base) =>
+      remote.setBase(base)
+    );
+    return () => {
+      unsubscribe();
+      remote.setBase(null);
+    };
+  }, [remote, baseManager]);
+
   return (
     <BaseManagerContext value={baseManager}>
       <Outlet />

@@ -1,6 +1,7 @@
 import type { ItemAsset } from "@/models";
 
 import { NodeContent } from "@/components";
+import { pageTitle } from "@/providers";
 
 import { useParams, type MetaFunction } from "react-router";
 import { useEffect, useContext } from "react";
@@ -11,7 +12,7 @@ import "./OnAsset.scss";
 
 // Set the window title.
 export const meta: MetaFunction = ({ params }) => [
-  { title: `Parallax — ${params.node}` },
+  { title: pageTitle(params.node) },
 ];
 
 export default function OnAsset() {

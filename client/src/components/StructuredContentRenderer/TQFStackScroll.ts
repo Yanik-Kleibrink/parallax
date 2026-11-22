@@ -343,7 +343,11 @@ class TQFStackScroller {
    */
   fold(card: HTMLElement, opening: boolean): number {
     let distance = 0;
-    for (const child of Array.from(card.children).slice(1)) {
+    // The X of a dismissible card does not fold (see TQFStack.scss).
+    const details = Array.from(card.children)
+      .slice(1)
+      .filter((child) => !child.matches(".structured-content__tqf-dismiss"));
+    for (const child of details) {
       distance += opening
         ? child.scrollHeight
         : child.getBoundingClientRect().height;

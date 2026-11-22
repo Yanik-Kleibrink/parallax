@@ -23,6 +23,13 @@ $color-error: #ff3b30;
 
 $color-authors: darkgray;
 
+// The accent colors of the TQF flavors (cards and the stacks around them).
+$tqf-accents: (
+  question: #f5b400,
+  todo: #007aff,
+  fix: #ff453a,
+);
+
 $color-articles: rgb(0, 255, 0);
 $color-direction: #ffaa00;
 $color-ideas: #a103fc;

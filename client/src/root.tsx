@@ -1,3 +1,5 @@
+import { pageTitle, RemoteControlProvider } from "@/providers";
+
 import {
   Links,
   Meta,
@@ -20,7 +22,7 @@ import "@/styles/forms.scss";
 console.debug = () => {};
 
 // Default window title (pages may set their own).
-export const meta: MetaFunction = () => [{ title: "Parallax" }];
+export const meta: MetaFunction = () => [{ title: pageTitle() }];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -49,8 +51,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <>
+    <RemoteControlProvider>
       <Outlet />
-    </>
+    </RemoteControlProvider>
   );
 }

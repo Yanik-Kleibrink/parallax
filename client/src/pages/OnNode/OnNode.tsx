@@ -1,5 +1,5 @@
 import { Sidebar, NodeView } from "@/components";
-import { BaseManagerContext } from "@/providers";
+import { BaseManagerContext, pageTitle } from "@/providers";
 
 import { useParams, useNavigate, type MetaFunction } from "react-router";
 import { useState, useEffect, useContext, useMemo } from "react";
@@ -9,7 +9,7 @@ import "./OnNode.scss";
 
 // Set the window title.
 export const meta: MetaFunction = ({ params }) => [
-  { title: `Parallax — ${params.node}` },
+  { title: pageTitle(params.node) },
 ];
 
 export default function OnNode() {

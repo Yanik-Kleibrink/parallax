@@ -38,7 +38,7 @@ $tqf-min-height: calc(2 * 0.9rem + 2px);
           [data-tqf-current]
         )
       )
-      > :not(:first-child) {
+      > :not(:first-child, .structured-content__tqf-dismiss) {
       height: 0;
       overflow: hidden;
       margin-block: 0;
@@ -50,6 +50,28 @@ $tqf-min-height: calc(2 * 0.9rem + 2px);
     .structured-content__tqf-stack {
       margin: 0.5rem 0;
     }
+  }
+
+  // A stack pulses while one of its own cards does (not one in a stack nested in a card), in that card's accent, so that a folded card shows it too (see the pulse of a TQF in StructuredContentRenderer.scss).
+  @each $flavor, $accent in $tqf-accents {
+    .structured-content__tqf-stack:has(
+      > .structured-content__tqf-track
+        > .structured-content__tqf--pulse.structured-content__tqf--#{$flavor}
+    ) {
+      border-radius: 12px;
+      outline: 1.5px solid color-mix(in oklab, #{$accent} 50%, transparent);
+
+      @media (prefers-reduced-motion: no-preference) {
+        animation: structured-content-tqf-pulse 1s ease-in-out infinite;
+      }
+    }
+  }
+
+  // In a closed stack, only the stack's ring shows the pulse of a card that is covered by the next one.
+  .structured-content__tqf-stack:not([data-open])
+    > .structured-content__tqf-track
+    > .structured-content__tqf--pulse:not(:last-child) {
+    outline: none;
   }
 
   // This ensures that the layout inside a stack (cards opening and closing) stays inside it.
@@ -104,7 +126,8 @@ $tqf-min-height: calc(2 * 0.9rem + 2px);
             transition-delay: 0s;
           }
 
-          &[data-tqf-current] > :not(:first-child) {
+          &[data-tqf-current]
+            > :not(:first-child, .structured-content__tqf-dismiss) {
             margin-block: 0.25rem;
           }
         }
