@@ -1445,6 +1445,7 @@ This is a theorem block.
             }],
             label: None,
             name: None,
+            verified: None,
         }]
     );
 
@@ -1475,6 +1476,7 @@ This is a definition block.
                     )],
                 }
             ]),
+            verified: None,
         }]
     );
 
@@ -1509,6 +1511,7 @@ This is a definition block.
                     StructuredContent::Text("\n".to_string()),
                 ],
             }]),
+            verified: None,
         }]
     );
 
