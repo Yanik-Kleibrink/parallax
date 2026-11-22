@@ -9,7 +9,7 @@ use tokio_stream::StreamExt;
 use tokio_stream::wrappers::BroadcastStream;
 use tracing::{debug, error, info, info_span};
 
-/// The ID of the base
+/// The ID of the base.
 ///
 /// Remote controls, servers, and clients use it to agree on a base.
 #[derive(Clone, Debug)]

@@ -116,7 +116,8 @@ enum LatexSource {
 
 #[derive(Deserialize, Serialize)]
 struct BaseConfig {
-    /// A stable identifier of the base, that enables the client, server, and remote controllers to agree on a base.
+    /// A stable identifier of the base, that enables the client,
+    /// server, and remote controls to agree on a base.
     id: String,
 
     api_server: APIServerConfig,

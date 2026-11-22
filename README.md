@@ -17,7 +17,8 @@ Parallax requires Rust's package manager to run. If you don't have it yet, you w
 
 ### 2. Download and Run the Server
 1. Download the `server.tar.xz` file from the **Nightly Releases** page and extract it.
-2. Open your terminal in the extracted folder and start the server by pointing it to your base directory:
+2. Make sure the base's `config.yaml` has an `id`, a stable identifier of the base (e.g. `id: my-base`); the server does not start without one.
+3. Open your terminal in the extracted folder and start the server by pointing it to your base directory:
    ```sh
    cargo run --release -- [path to base]
    ```

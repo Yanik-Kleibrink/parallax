@@ -222,38 +222,30 @@ impl HTMLExportConfiguration {
         result
     }
 
-    /// Extracts the block name from a SpecialBlock element.
-    fn extract_block_name(block: &SpecialBlock) -> Option<String> {
-        let block_start = block
+    /// Extracts the begin line of a SpecialBlock element, e.g.
+    /// `#+begin_ques :id q1`, or an empty string without one.
+    fn block_begin_line(block: &SpecialBlock) -> String {
+        block
             .syntax()
             .children()
             .find(|e| e.kind() == BLOCK_BEGIN)
-            .into_iter()
-            .next()
             .map(|e| e.text().to_string())
-            .unwrap_or("".to_owned());
+            .unwrap_or_default()
+    }
+
+    /// Extracts the block name from a SpecialBlock element.
+    fn extract_block_name(block: &SpecialBlock) -> Option<String> {
         FIND_BLOCK_NAME
-            .captures_iter(&block_start)
-            .next()
-            .map(|cap| {
-                cap.name("name").map(|m| {
-                    block_start[m.start()..m.end()].to_owned()
-                })
-            })
-            .flatten()
+            .captures(&Self::block_begin_line(block))
+            .and_then(|cap| cap.name("name"))
+            .map(|m| m.as_str().to_owned())
     }
 
     /// Extracts the ID (`:id <id>`) from the begin line of a
     /// SpecialBlock element.
     fn extract_block_id(block: &SpecialBlock) -> Option<String> {
-        let block_start = block
-            .syntax()
-            .children()
-            .find(|e| e.kind() == BLOCK_BEGIN)?
-            .text()
-            .to_string();
         FIND_BLOCK_ID
-            .captures(&block_start)
+            .captures(&Self::block_begin_line(block))
             .and_then(|cap| cap.name("id"))
             .map(|m| m.as_str().to_owned())
     }
@@ -1432,6 +1424,46 @@ This is a question block.
                 )],
             }],
             id: Some("q1".to_string()),
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_tqf_do_with_id,
+        "#+do[d1]: This is a todo item.",
+        vec![StructuredContent::TQF {
+            flavor: TQFFlavor::Todo,
+            content: vec![StructuredContent::Text(
+                " This is a todo item.".to_string()
+            )],
+            id: Some("d1".to_string()),
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_tqf_ques_with_id,
+        "#+ques[q2]: This is a question item.",
+        vec![StructuredContent::TQF {
+            flavor: TQFFlavor::Question,
+            content: vec![StructuredContent::Text(
+                " This is a question item.".to_string()
+            )],
+            id: Some("q2".to_string()),
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_block_tqf_id_after_parameters,
+        r#"#+begin_todo :foo bar :id t1
+This is a todo block.
+#+end_todo"#,
+        vec![StructuredContent::TQF {
+            flavor: TQFFlavor::Todo,
+            content: vec![StructuredContent::Paragraph {
+                content: vec![StructuredContent::Text(
+                    "This is a todo block.\n".to_string()
+                )],
+            }],
+            id: Some("t1".to_string()),
         }]
     );
 
