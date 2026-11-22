@@ -16,7 +16,6 @@ export default function OnBase() {
         setMinimized={() => {}}
         layout={"horizontal"}
       />
-      ;
     </div>
   );
 }
