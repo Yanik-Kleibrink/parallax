@@ -4,7 +4,7 @@ use crate::items_management::ItemDatabase;
 use crate::parsing::deep_parser::HTMLExportConfiguration;
 use crate::routes::assets::{access_asset, grant_asset};
 use crate::routes::auth::{JWTRequest, access, grant_access};
-use crate::routes::websocket::new_websocket;
+use crate::routes::websocket::{BaseId, new_websocket};
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
@@ -116,6 +116,9 @@ enum LatexSource {
 
 #[derive(Deserialize, Serialize)]
 struct BaseConfig {
+    /// A stable identifier of the base, that enables the client, server, and remote controllers to agree on a base.
+    id: String,
+
     api_server: APIServerConfig,
 
     // If the file watcher isn't enabled it also isn't possible to
@@ -342,6 +345,7 @@ impl Base {
                     .build(),
             );
         let config_hash = self.config.hash();
+        let base_id = BaseId(self.config.id.clone());
         let insecure_tokens =
             self.config.api_server.insecure_tokens.unwrap_or(false);
 
@@ -351,6 +355,7 @@ impl Base {
             let secret = secret.clone();
             let token_cache = token_cache.clone();
             let config_hash = config_hash.clone();
+            let base_id = base_id.clone();
             let insecure_tokens = insecure_tokens.clone();
 
             App::new()
@@ -384,6 +389,7 @@ impl Base {
                 .app_data(Data::new(secret))
                 .app_data(token_cache.clone())
                 .app_data(Data::new(config_hash))
+                .app_data(Data::new(base_id))
                 .app_data(Data::new(insecure_tokens))
                 .wrap(Logger::default())
                 .route("/ws", web::get().to(new_websocket))
@@ -716,5 +722,33 @@ fn handle_file_update(
                 "File extension could not be determined for modified file"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Read a minimal config, with the given `id` line.
+    fn config(id: &str) -> Result<BaseConfig, serde_yaml::Error> {
+        let yaml = format!(
+            "{id}
+api_server:
+  client_urls: []
+bibliography_source: !BibLatex {{}}
+latex_source: !Katex {{}}
+"
+        );
+        serde_yaml::from_str(&yaml)
+    }
+
+    #[test]
+    fn test_config_with_id() {
+        assert_eq!(config("id: 3f9c2a7e").unwrap().id, "3f9c2a7e");
+    }
+
+    #[test]
+    fn test_config_without_id() {
+        assert!(config("").is_err());
     }
 }

@@ -9,20 +9,28 @@ use tokio_stream::StreamExt;
 use tokio_stream::wrappers::BroadcastStream;
 use tracing::{debug, error, info, info_span};
 
+/// The ID of the base
+///
+/// Remote controls, servers, and clients use it to agree on a base.
+#[derive(Clone, Debug)]
+pub struct BaseId(pub String);
+
 /// This is the type returned to the client.
 #[derive(Debug, serde::Serialize)]
 enum ItemInformation {
     Update(Item),
     Remove(String),
 
-    /// The second component is the config hash.
-    Inventory(Vec<ItemFreshness>, u64),
+    /// The second component is the config hash, and the third one
+    /// is the ID of the base.
+    Inventory(Vec<ItemFreshness>, u64, String),
 }
 
 pub async fn new_websocket(
     req: HttpRequest,
     items: web::Data<ItemDatabase>,
     config_hash: web::Data<u64>,
+    base_id: web::Data<BaseId>,
     stream: web::Payload,
     group: VerifiedGroup,
 ) -> Result<HttpResponse, Error> {
@@ -49,6 +57,7 @@ pub async fn new_websocket(
         let item_information = ItemInformation::Inventory(
             items.item_updates(&group),
             *config_hash.into_inner(),
+            base_id.0.clone(),
         );
 
         let json = serde_json::to_string(&item_information);
