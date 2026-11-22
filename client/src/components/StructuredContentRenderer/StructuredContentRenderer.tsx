@@ -3,8 +3,10 @@ import { BaseManagerContext, NodeIDContext } from "@/providers";
 import { ProgressIcon } from "@/utils";
 
 import {
+  memo,
   useContext,
   useEffect,
+  useRef,
   useState,
   useLayoutEffect,
   type JSX,
@@ -446,7 +448,7 @@ function contentHash(content: StructuredContent): string {
  * @param contents The block content to render.
  * @param context The rendering context that is passed to every item.
  */
-export function StructuredContentList({
+export const StructuredContentList = memo(function StructuredContentList({
   contents,
   context,
 }: {
@@ -490,7 +492,7 @@ export function StructuredContentList({
     }
   }
   return <>{elements}</>;
-}
+});
 
 /**
  * A component that renders a single constituent of structured content. In particular, it only works when a base manager is available in the context. If a base manager is not available, it will render nothing.
@@ -506,22 +508,23 @@ function Constituent({
 
   const [item, setItem] = useState<Item | null>(null);
 
+  // Parents pass a fresh context object on every render ({ ...context, depth }), so the effects below must not depend on it:
+  // otherwise every render of an ancestor (e.g. a click in the table of contents) refetches and re-renders every constituent.
+  const handleContentRender = useRef(context.handleContentRender);
+  useLayoutEffect(() => {
+    handleContentRender.current = context.handleContentRender;
+  });
+
   useEffect(() => {
     if (!baseManager) return;
 
-    const unsubscribe = baseManager.subscribe(name, setItem);
-
-    baseManager
-      .retrieve(name)
-      .then(setItem)
-      .catch(() => {});
-
-    return unsubscribe;
-  }, [baseManager, name, context]);
+    // subscribe already delivers the stored item (or requests it from the server), so no separate retrieve is needed.
+    return baseManager.subscribe(name, setItem);
+  }, [baseManager, name]);
 
   useLayoutEffect(() => {
-    context.handleContentRender?.();
-  }, [item, context]);
+    handleContentRender.current?.();
+  }, [item]);
 
   if (item && item.content) {
     return <StructuredContentList contents={item.content} context={context} />;

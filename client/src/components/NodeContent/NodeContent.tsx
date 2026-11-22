@@ -4,8 +4,10 @@ import type { Item, StructuredContent } from "@/models";
 import { getNode } from "@/utils";
 
 import {
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useRef,
   useLayoutEffect,
@@ -26,9 +28,12 @@ export function NodeContent({
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const [handleContentRender, setHandleContentRender] = useState<() => void>(
-    () => () => {}
-  );
+  // The pending scroll target and the latest setHash live in refs, so that the render callback below stays the same function and the rendering context stays stable.
+  const pendingHash = useRef<string | undefined>(undefined);
+  const setHashRef = useRef(setHash);
+  useLayoutEffect(() => {
+    setHashRef.current = setHash;
+  }, [setHash]);
 
   const baseManager = useContext(BaseManagerContext);
 
@@ -48,41 +53,53 @@ export function NodeContent({
     }
   };
 
-  useEffect(() => {
-    setHandleContentRender(() => () => {
-      if (!hash) return;
-      console.info("Scrolling to hash:", hash);
+  const handleContentRender = useCallback(() => {
+    const target = pendingHash.current;
+    if (!target) return;
 
-      const container = scrollRef.current;
-      const element = container?.querySelector(
-        `#${hash}`
-      ) as HTMLElement | null;
-      if (container && element) {
-        container.scrollTo({
-          top: element.offsetTop,
-          behavior: "smooth",
-        });
-        setHash && setHash(undefined); // Clear the hash after scrolling to prevent repeated scrolling on re-render.
-      }
-    });
-  }, [hash, scrollRef]);
+    const container = scrollRef.current;
+    const element = container?.querySelector(
+      `#${CSS.escape(target)}`
+    ) as HTMLElement | null;
+    if (container && element) {
+      console.info("Scrolling to hash:", target);
+      pendingHash.current = undefined; // Scroll only once, even if constituents render before the parent clears the hash.
+      container.scrollTo({
+        top: element.offsetTop,
+        behavior: "auto",
+      });
+      setHashRef.current?.(undefined); // Clear the hash after scrolling to prevent repeated scrolling on re-render.
+    }
+  }, []);
 
-  //. This custom scroll effect is used to ensure that only the contents container scrolls and the nav / etc. remains untouched.
+  // This custom scroll effect is used to ensure that only the contents container scrolls and the nav / etc. remains untouched.
+  // A new hash is taken over only when it changes, so that a parent that does not clear the hash (e.g. OnAsset) does not cause repeated scrolling.
   useLayoutEffect(() => {
-    if (!handleContentRender) return;
+    pendingHash.current = hash;
     handleContentRender();
-  }, [handleContentRender, location.hash, nodeContent]);
+  }, [hash, handleContentRender]);
+
+  // If the target was not rendered yet, retry once the content (and, via the context, each constituent) has rendered.
+  useLayoutEffect(() => {
+    handleContentRender();
+  }, [handleContentRender, nodeContent]);
+
+  // A stable context lets the memoized StructuredContentList skip re-rendering the document when only the hash changes.
+  const context = useMemo(
+    () => ({
+      depth: 0,
+      openReference: nodePreviewFunction,
+      handleContentRender: handleContentRender,
+    }),
+    [nodePreviewFunction, handleContentRender]
+  );
 
   useEffect(() => {
     if (!baseManager) return;
 
     const unsubscribe = baseManager.subscribe(key, setNodeContentFromItem);
 
-    baseManager
-      .retrieve(key)
-      .then(setNodeContentFromItem)
-      .catch(() => {}); // Note an error could be thrown if the backend needs to request the item from the server.
-
+    // subscribe already delivers the stored item (or requests it from the server), so no separate retrieve is needed.
     return unsubscribe;
   }, [baseManager, key]);
 
@@ -91,14 +108,7 @@ export function NodeContent({
       <div className="node-content-container">
         <div className="node-content">
           {nodeContent && (
-            <StructuredContentList
-              contents={nodeContent}
-              context={{
-                depth: 0,
-                openReference: nodePreviewFunction,
-                handleContentRender: handleContentRender,
-              }}
-            />
+            <StructuredContentList contents={nodeContent} context={context} />
           )}
         </div>
       </div>
