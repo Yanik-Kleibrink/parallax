@@ -56,7 +56,16 @@ pub static FIND_LATEX_AND_CITATIONS: LazyLock<Regex> = LazyLock::new(
         .unwrap()
     },
 );
+/// A work item line, e.g. `#+fix: ...`, optionally with an ID, e.g.
+/// `#+fix[7f3a]: ...` (no whitespace or `]` in the ID, as orgize
+/// otherwise does not read the line as a keyword).
 pub static FIND_TQF: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?m)^#\+(?<severity>do|ques|fix):(?<content>.*)")
-        .unwrap()
+    Regex::new(
+        r"(?m)^#\+(?<severity>do|ques|fix)(?:\[(?<id>[^\]\s]+)\])?:(?<content>.*)",
+    )
+    .unwrap()
+});
+/// The ID of a block, given as `:id <id>` on its `#+begin_` line.
+pub static FIND_BLOCK_ID: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"#\+begin_\S+.*?\s:id\s+(?<id>\S+)").unwrap()
 });

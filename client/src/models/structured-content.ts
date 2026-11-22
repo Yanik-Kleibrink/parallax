@@ -120,6 +120,7 @@ export type StructuredContent =
       TQF: {
         content: StructuredContent[];
         flavor: TQFFlavor;
+        id: string | null;
       };
     }
   | {

@@ -116,6 +116,8 @@ pub enum StructuredContent {
     TQF {
         content: Vec<StructuredContent>,
         flavor: TQFFlavor,
+        /// The ID, if the work item has one.
+        id: Option<String>,
     },
 
     /// An itemized list.

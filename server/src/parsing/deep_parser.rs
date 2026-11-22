@@ -243,6 +243,21 @@ impl HTMLExportConfiguration {
             .flatten()
     }
 
+    /// Extracts the ID (`:id <id>`) from the begin line of a
+    /// SpecialBlock element.
+    fn extract_block_id(block: &SpecialBlock) -> Option<String> {
+        let block_start = block
+            .syntax()
+            .children()
+            .find(|e| e.kind() == BLOCK_BEGIN)?
+            .text()
+            .to_string();
+        FIND_BLOCK_ID
+            .captures(&block_start)
+            .and_then(|cap| cap.name("id"))
+            .map(|m| m.as_str().to_owned())
+    }
+
     /// This obtains the content of a subblock with the given name
     /// from a SpecialBlock. If the subblock does not exist, an
     /// empty vector is returned.
@@ -700,6 +715,7 @@ impl HTMLExportConfiguration {
                             return vec![StructuredContent::TQF {
                                 flavor,
                                 content,
+                                id: Self::extract_block_id(&b),
                             }];
                         }
 
@@ -962,6 +978,9 @@ impl HTMLExportConfiguration {
                                         .render_latex_and_citations(
                                             content,
                                         ),
+                                    id: caps
+                                        .name("id")
+                                        .map(|m| m.as_str().to_owned()),
                                 }];
                             }
                             _ => {
@@ -1368,6 +1387,19 @@ pub mod tests {
             content: vec![StructuredContent::Text(
                 " This is a todo item.".to_string()
             )],
+            id: None,
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_tqf_with_id,
+        "#+fix[7f3a]: This is a fix item.",
+        vec![StructuredContent::TQF {
+            flavor: TQFFlavor::Fix,
+            content: vec![StructuredContent::Text(
+                " This is a fix item.".to_string()
+            )],
+            id: Some("7f3a".to_string()),
         }]
     );
 
@@ -1383,6 +1415,23 @@ This is a question block.
                     "This is a question block.\n".to_string()
                 )],
             }],
+            id: None,
+        }]
+    );
+
+    assert_org_parse!(
+        test_parse_block_tqf_with_id,
+        r#"#+begin_ques :id q1
+This is a question block.
+#+end_ques"#,
+        vec![StructuredContent::TQF {
+            flavor: TQFFlavor::Question,
+            content: vec![StructuredContent::Paragraph {
+                content: vec![StructuredContent::Text(
+                    "This is a question block.\n".to_string()
+                )],
+            }],
+            id: Some("q1".to_string()),
         }]
     );
 
