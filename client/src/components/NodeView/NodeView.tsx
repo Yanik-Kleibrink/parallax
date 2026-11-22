@@ -9,7 +9,14 @@ import { getNode, checkContentEmpty } from "@/utils";
 import { BaseManagerContext, NodeIDContext } from "@/providers";
 import type { Item } from "@/models";
 
-import { useState, useContext, useEffect, type JSX } from "react";
+import {
+  useState,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type JSX,
+} from "react";
 import {
   XLg,
   FullscreenExit,
@@ -225,12 +232,17 @@ export function NodeView({
 }) {
   const [nodeViewContext, setNodeViewContext] = useState<NodeViewContext>(
     () => {
-      return new NodeViewContext(maxOpenWindows, layout === "horizontal");
+      const context = new NodeViewContext(
+        maxOpenWindows,
+        layout === "horizontal"
+      );
+      if (layout === "vertical") context.closeAllWindows();
+      return context;
     }
   );
   const [nodeDetailsState, setNodeDetailsState] = useState<
     "Open" | "Minimized"
-  >("Minimized");
+  >(layout === "vertical" ? "Open" : "Minimized");
   // We intentionally do not track which of the windows are available in NodeViewContext so that the user has a consistent experience when switching between nodes.
   const [availableWindows, setAvailableWindows] = useState<Set<WindowType>>(
     new Set()
@@ -253,9 +265,16 @@ export function NodeView({
     return baseManager.subscribeConnectionStatus(setConnected);
   }, [baseManager]);
 
-  // This effect updates the window state when the layout changes or the nodeID changes.
-  // It essentially sets the initial state of the windows based on the layout and the nodeID.
-  useEffect(() => {
+  // Update the window state when the layout or the nodeID changes (the initial state is set above).
+  // The open windows are kept across nodes on purpose, so NodeView is not remounted with a key.
+  const [previous, setPrevious] = useState({ nodeID, maxOpenWindows, layout });
+
+  if (
+    previous.nodeID !== nodeID ||
+    previous.maxOpenWindows !== maxOpenWindows ||
+    previous.layout !== layout
+  ) {
+    setPrevious({ nodeID, maxOpenWindows, layout });
     setNodeViewContext((prevContext) => {
       const next = prevContext.clone();
       next.updateMaxOpenWindows(maxOpenWindows);
@@ -270,11 +289,16 @@ export function NodeView({
     if (layout === "vertical") {
       setNodeDetailsState("Open"); // Automatically open the details panel when switching to vertical layout
     }
-  }, [nodeID, maxOpenWindows, layout, setNodeDetailsState, setNodeViewContext]);
+    if (previous.nodeID !== nodeID) {
+      setUserInteracted(false); // Reset user interaction state when the nodeID changes
+    }
+  }
 
-  useEffect(() => {
-    setUserInteracted(false); // Reset user interaction state when the nodeID changes
-  }, [nodeID]);
+  // The loading effect below reads this through a ref, so that the first interaction does not resubscribe and request the assets again.
+  const userInteractedRef = useRef(userInteracted);
+  useLayoutEffect(() => {
+    userInteractedRef.current = userInteracted;
+  }, [userInteracted]);
 
   useEffect(() => {
     if (!baseManager) return;
@@ -331,31 +355,25 @@ export function NodeView({
         windows.add("NodeContent");
       }
 
-      if (!userInteracted) {
+      if (!userInteractedRef.current) {
         setNodeDetailsState("Minimized"); // Default to minimized state
         if (windows.has("NodeContent")) {
           setNodeDetailsState("Open"); // Automatically open the NodeContent window if it has content
         }
       }
 
-      setAvailableWindows(windows);
+      // Keep the old set if nothing changed, so that React skips the render.
+      setAvailableWindows((previousWindows) =>
+        previousWindows.size === windows.size &&
+        [...windows].every((type) => previousWindows.has(type))
+          ? previousWindows
+          : windows
+      );
     };
 
-    const unsubscribe = baseManager.subscribe(key, updateAvailableWindows);
-
-    baseManager
-      .retrieve(key)
-      .then(updateAvailableWindows)
-      .catch(() => {});
-
-    return unsubscribe;
-  }, [
-    userInteracted,
-    baseManager,
-    nodeID,
-    setAvailableWindows,
-    setNodeDetailsState,
-  ]);
+    // Note that subscribe will automatically deliver the stored item.
+    return baseManager.subscribe(key, updateAvailableWindows);
+  }, [baseManager, nodeID, setAvailableWindows, setNodeDetailsState]);
 
   return (
     <NodeIDContext value={nodeID}>

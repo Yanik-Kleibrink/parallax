@@ -2,7 +2,7 @@ import { Sidebar, NodeView } from "@/components";
 import { BaseManagerContext } from "@/providers";
 
 import { useParams, useNavigate, type MetaFunction } from "react-router";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { ArrowsAngleExpand } from "react-bootstrap-icons";
 
 import "./OnNode.scss";
@@ -18,9 +18,6 @@ export default function OnNode() {
   const [navigationState, setNavigationState] = useState<"Open" | "Minimized">(
     "Open"
   );
-  const [nodePreviewFunction, setNodePreviewFunction] = useState<
-    ((nodeID: string) => void) | undefined
-  >(undefined);
   const [modalNode, setModalNode] = useState<string | null>(null);
   const [hash, setHash] = useState<string | undefined>(undefined);
 
@@ -60,16 +57,16 @@ export default function OnNode() {
     };
   }, [setLayout, setMaxNumberOfOpenWindows, setNavigationState]);
 
-  useEffect(() => {
-    if (!baseManager) return;
+  // Derived during render: an effect that sets it would render the whole page (and everything below) a second time.
+  const nodePreviewFunction = useMemo(() => {
+    if (!baseManager) return undefined;
     if (layout === "vertical") {
-      setNodePreviewFunction(() => (nodeID: string) => {
+      return (nodeID: string) => {
         navigate(`/${baseManager.getName()}/${nodeID}`);
-      });
-    } else {
-      setNodePreviewFunction(() => (nodeID: string) => setModalNode(nodeID));
+      };
     }
-  }, [layout, setNodePreviewFunction, setModalNode, baseManager, navigate]);
+    return (nodeID: string) => setModalNode(nodeID);
+  }, [layout, baseManager, navigate]);
 
   return (
     <div
