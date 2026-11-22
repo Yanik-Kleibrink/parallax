@@ -10,4 +10,5 @@ export interface Base {
   tls: boolean;
   configHash: number;
   jwt: string;
+  id: string | null;
 }

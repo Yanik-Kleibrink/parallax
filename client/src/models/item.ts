@@ -149,5 +149,6 @@ export type ItemInformation =
       Remove: string;
     }
   | {
-      Inventory: [ItemFreshness[], number];
+      // The item freshnesses, the config hash, and the ID of the base (missing from older servers).
+      Inventory: [ItemFreshness[], number, string?];
     };

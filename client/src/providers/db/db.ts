@@ -241,11 +241,15 @@ export async function addBase(base: Base) {
 }
 
 /**
- *   This function updates the lastConnected timestamp of a base in the indexedDB database.
+ *   This function updates the lastConnected timestamp, the config hash, and the ID of a base in the indexedDB database.
  *
  *   It should be called whenever a base is connected to, to keep track of the last time it was accessed.
  */
-export async function connectedToBase(base: string, configHash: number) {
+export async function connectedToBase(
+  base: string,
+  configHash: number,
+  id: string | null
+) {
   const db = await openDB();
   const tx = db.transaction(BASES_STORE_NAME, "readwrite");
   const store = tx.objectStore(BASES_STORE_NAME);
@@ -256,6 +260,7 @@ export async function connectedToBase(base: string, configHash: number) {
     if (existingBase) {
       existingBase.lastConnected = Date.now();
       existingBase.configHash = configHash;
+      existingBase.id = id;
       store.put(existingBase);
     }
   };

@@ -60,6 +60,11 @@ export class BaseManager {
   listenersConnectionStatus: Set<(result: boolean) => void>;
 
   /**
+   * A set of listeners for the base. They are called with the base whenever it changes, e.g. when its ID becomes known after connecting.
+   */
+  listenersBase: Set<(base: Base) => void>;
+
+  /**
    * A map of listeners for search results. The key is the search query, and the value is a set of callback functions that will be called when the search results are updated.
    */
   listenersSearch: Map<string, Set<(searchResult: Array<string>) => void>>;
@@ -106,6 +111,7 @@ export class BaseManager {
     this.listeners = new Map();
     this.listenersGlobal = new Set();
     this.listenersConnectionStatus = new Set();
+    this.listenersBase = new Set();
     this.listenersSearch = new Map();
 
     this.requested_items = new Set();
@@ -306,7 +312,12 @@ export class BaseManager {
       // This is the list of updated items.
       if ("Inventory" in item_information) {
         const configHash = item_information.Inventory[1];
-        connectedToBase(this.base.name, configHash).then(() => {
+        const id = item_information.Inventory[2] ?? null;
+        if (this.base.id !== id) {
+          this.base = { ...this.base, id };
+          this.listenersBase.forEach((cb) => cb(this.base));
+        }
+        connectedToBase(this.base.name, configHash, id).then(() => {
           const serverItemFreshnesses = item_information
             .Inventory[0] as ItemFreshness[];
           // Compare the config hash with the one stored in the database.
@@ -653,6 +664,20 @@ export class BaseManager {
 
     // Return unsubscribe function
     return () => this.listenersGlobal.delete(callback);
+  }
+
+  /**
+   * This function allows components to subscribe to the base, i.e., to all information about it (name, server, ID, ...).
+   *
+   * The callback is called with the current base at once and again whenever it changes, e.g. when its ID becomes known after connecting.
+   */
+  subscribeBase(callback: (base: Base) => void): () => void {
+    this.listenersBase.add(callback);
+
+    callback(this.base);
+
+    // Return unsubscribe function
+    return () => this.listenersBase.delete(callback);
   }
 
   /**

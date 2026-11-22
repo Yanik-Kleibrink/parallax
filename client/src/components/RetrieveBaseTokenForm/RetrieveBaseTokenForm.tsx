@@ -151,6 +151,8 @@ export function RetrieveBaseTokenForm({ base }: { base?: Base }) {
       lastConnected: Date.now(),
       configHash: 0,
       jwt,
+      // A new base gets its ID on the first connection to the server (see connectedToBase).
+      id: base?.id ?? null,
     });
 
     if (!base) {
