@@ -265,6 +265,9 @@ export function NodeView({
     return baseManager.subscribeConnectionStatus(setConnected);
   }, [baseManager]);
 
+  // The last scroll target that was taken over (see below), so that each target opens the content window at most once.
+  const [handledHash, setHandledHash] = useState<string | undefined>(undefined);
+
   // Update the window state when the layout or the nodeID changes (the initial state is set above).
   // The open windows are kept across nodes on purpose, so NodeView is not remounted with a key.
   const [previous, setPrevious] = useState({ nodeID, maxOpenWindows, layout });
@@ -282,17 +285,58 @@ export function NodeView({
 
       if (layout === "vertical") {
         next.closeAllWindows(); // Close all windows when switching to vertical layout and the details panel is open
+        // A pending scroll target is reached only in the content window, so it stays open (e.g. when a fresh window switches to vertical layout).
+        if (hash !== undefined) next.openWindow("NodeContent");
       }
       return next;
     });
 
-    if (layout === "vertical") {
-      setNodeDetailsState("Open"); // Automatically open the details panel when switching to vertical layout
-    }
     if (previous.nodeID !== nodeID) {
       setUserInteracted(false); // Reset user interaction state when the nodeID changes
     }
+    if (layout === "vertical") {
+      if (hash === undefined) {
+        setNodeDetailsState("Open"); // Automatically open the details panel when switching to vertical layout
+      } else {
+        setNodeDetailsState("Minimized");
+        setUserInteracted(true); // Otherwise the details panel opens again once the item has loaded
+      }
+    }
   }
+
+  // A scroll target (e.g. from the remote control) is reached only in the content window, so a new target opens it as the table of contents does.
+  // Each target is taken over once, whether the window was open or not, so that the user can close or minimize it afterwards.
+  // A target that is never found does not stay: NodeContent drops it after a while, and the effect below when the user puts the window away.
+  if (hash !== handledHash) {
+    setHandledHash(hash);
+    const contentWindowState = nodeViewContext.openWindows.find(
+      ([windowType]) => windowType === "NodeContent"
+    )?.[1];
+    if (hash !== undefined && contentWindowState !== "Open") {
+      setNodeViewContext((prevContext) => {
+        const next = prevContext.clone();
+        next.openWindow("NodeContent");
+        return next;
+      });
+      // In vertical layout the details panel and the content window take turns, so the details panel must not open again once the item has loaded.
+      // In horizontal layout the details panel keeps its default, so an item opened at a section looks as when it is opened otherwise.
+      if (layout === "vertical") {
+        setNodeDetailsState("Minimized");
+        setUserInteracted(true);
+      }
+    }
+  }
+
+  // Once a target has been taken over, closing or minimizing the content window (e.g. opening the details panel in vertical layout) drops it, as NodeContent can no longer drop it after it unmounts.
+  const contentWindowOpen = nodeViewContext.openWindows.some(
+    ([windowType, windowState]) =>
+      windowType === "NodeContent" && windowState === "Open"
+  );
+  useEffect(() => {
+    if (hash !== undefined && handledHash === hash && !contentWindowOpen) {
+      setHash?.(undefined);
+    }
+  }, [hash, handledHash, contentWindowOpen, setHash]);
 
   // The loading effect below reads this through a ref, so that the first interaction does not resubscribe and request the assets again.
   const userInteractedRef = useRef(userInteracted);

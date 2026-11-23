@@ -1,7 +1,17 @@
 import { Sidebar, NodeView } from "@/components";
-import { BaseManagerContext, pageTitle } from "@/providers";
+import {
+  BaseManagerContext,
+  pageTitle,
+  type SectionNavigationState,
+} from "@/providers";
 
-import { useParams, useNavigate, type MetaFunction } from "react-router";
+import {
+  useParams,
+  useNavigate,
+  useLocation,
+  useNavigationType,
+  type MetaFunction,
+} from "react-router";
 import { useState, useEffect, useContext, useMemo } from "react";
 import { ArrowsAngleExpand } from "react-bootstrap-icons";
 
@@ -19,9 +29,30 @@ export default function OnNode() {
     "Open"
   );
   const [modalNode, setModalNode] = useState<string | null>(null);
-  const [hash, setHash] = useState<string | undefined>(undefined);
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  // A section that the remote control asked for comes as router state (see SectionNavigationState).
+  // The id of a section's headline is node-<key> (see StructuredContentRenderer).
+  // Back, forward, and reload (POP) restore the state of their entry, but must not jump to its section again.
+  const section =
+    navigationType === "POP"
+      ? undefined
+      : (location.state as Partial<SectionNavigationState> | null)?.section;
+  const sectionHash =
+    typeof section === "string" ? `node-${section}` : undefined;
+  const [hash, setHash] = useState<string | undefined>(sectionHash);
 
-  const { node } = useParams<{ node: string }>();
+  // Each navigation has its own key, so opening the same section again scrolls again.
+  // Every navigation replaces the target, so that a target that was never found does not jump later on another page.
+  // Adjusted during render rather than in an effect, which would render the page a second time.
+  const [hashLocation, setHashLocation] = useState(location.key);
+  if (hashLocation !== location.key) {
+    setHashLocation(location.key);
+    setHash(sectionHash);
+    setModalNode(null); // A preview modal would cover the page that the navigation shows.
+  }
+
+  const { base, node } = useParams<{ base: string; node: string }>();
   const navigate = useNavigate();
   const baseManager = useContext(BaseManagerContext);
 
@@ -96,7 +127,8 @@ export default function OnNode() {
       )}
       <NodeView
         nodeID={node!}
-        hash={hash}
+        // Until the base in the address has loaded, the previous base's item may still be shown, which must not take over the target.
+        hash={baseManager?.getName() === base ? hash : undefined}
         setHash={setHash}
         layout={layout}
         maxOpenWindows={maxNumberOfOpenWindows}
@@ -127,7 +159,8 @@ export default function OnNode() {
                   : undefined
               }
               setHash={(hash) => {
-                setModalNode(`${modalNode.split("#")[0]}#${hash}`);
+                const modalKey = modalNode.split("#")[0];
+                setModalNode(hash ? `${modalKey}#${hash}` : modalKey);
               }}
               layout="horizontal"
               maxOpenWindows={maxNumberOfOpenWindows}

@@ -15,6 +15,12 @@ import {
 
 import "./NodeContent.scss";
 
+/**
+ * How long (ms) a scroll target that was not found is kept after the content has rendered, so that included constituents can still render it.
+ * Afterwards it is dropped, so that a section that appears later (e.g. after an edit) does not move the page while the user reads.
+ */
+const SCROLL_TARGET_TIMEOUT = 3000;
+
 export function NodeContent({
   nodeID,
   hash,
@@ -41,18 +47,18 @@ export function NodeContent({
   const nodePath = nodeID.split(".");
   const key = nodePath[0];
 
-  const [nodeContent, setNodeContent] = useState<StructuredContent[] | null>(
-    null
-  );
-
-  const setNodeContentFromItem = (item: Item) => {
-    const node = getNode(nodeID, item);
-    if (node) {
-      setNodeContent(node.content);
-    } else {
-      setNodeContent(null);
-    }
-  };
+  // The item is kept with its base and key, and the content is derived for the current nodeID during render.
+  // So when the nodeID or the base changes, the previous item's content is never shown (or searched for a scroll target) in its place.
+  const [loaded, setLoaded] = useState<{
+    base: typeof baseManager;
+    key: string;
+    item: Item;
+  } | null>(null);
+  const nodeContent = useMemo<StructuredContent[] | null>(() => {
+    if (loaded?.base !== baseManager || loaded.key !== key) return null;
+    return getNode(nodeID, loaded.item)?.content ?? null;
+  }, [loaded, baseManager, key, nodeID]);
+  const contentShown = nodeContent !== null;
 
   const handleContentRender = useCallback(() => {
     const target = pendingHash.current;
@@ -85,6 +91,18 @@ export function NodeContent({
     handleContentRender();
   }, [handleContentRender, nodeContent]);
 
+  // Drop a target that was not found within SCROLL_TARGET_TIMEOUT after the content has rendered.
+  useEffect(() => {
+    if (hash === undefined || !contentShown) return;
+    const timer = setTimeout(() => {
+      if (pendingHash.current === undefined) return;
+      console.info("Scroll target not found:", pendingHash.current);
+      pendingHash.current = undefined;
+      setHashRef.current?.(undefined);
+    }, SCROLL_TARGET_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [hash, contentShown]);
+
   // A stable context lets the memoized StructuredContentList skip re-rendering the document when only the hash changes.
   const context = useMemo(
     () => ({
@@ -98,7 +116,9 @@ export function NodeContent({
   useEffect(() => {
     if (!baseManager) return;
 
-    const unsubscribe = baseManager.subscribe(key, setNodeContentFromItem);
+    const unsubscribe = baseManager.subscribe(key, (item: Item) =>
+      setLoaded({ base: baseManager, key, item })
+    );
 
     // subscribe already delivers the stored item (or requests it from the server), so no separate retrieve is needed.
     return unsubscribe;
