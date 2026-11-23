@@ -50,6 +50,11 @@ export class BaseManager {
   listeners: Map<string, Set<(result: Item) => void>>;
 
   /**
+   * The last item delivered to a subscriber, per name (see cached). An item is dropped when it changes or goes away.
+   */
+  private latest = new Map<string, Item>();
+
+  /**
    * A set of listeners to any item. This is necessary for the navigation.
    */
   listenersGlobal: Set<(graph: Graph) => void>;
@@ -323,6 +328,7 @@ export class BaseManager {
           // Compare the config hash with the one stored in the database.
           // If they are different, we need to clear the database and update all items.
           if (configHash !== this.base.configHash) {
+            this.latest.clear();
             removeAllItems(this.base.name).then(() => {
               serverItemFreshnesses.forEach((itemFreshness) => {
                 this.requestUpdate(itemFreshness.key);
@@ -380,6 +386,7 @@ export class BaseManager {
                 // Delete the items that are no longer present on the server.
                 toDeleteItems.forEach((itemFreshness) => {
                   removeItem(this.base.name, itemFreshness.key);
+                  this.latest.delete(itemFreshness.key);
                   this.graphManager?.removeItem(itemFreshness.key);
                   this.backupGraphManager?.removeItem(itemFreshness.key);
                   this.searchableData = this.searchableData.filter(
@@ -400,6 +407,7 @@ export class BaseManager {
         console.info("Removing item from database:", item_information.Remove);
         // Remove the item from the database and graph managers.
         removeItem(this.base.name, item_information.Remove);
+        this.latest.delete(item_information.Remove);
         this.graphManager?.removeItem(item_information.Remove);
         this.backupGraphManager?.removeItem(item_information.Remove);
       } else if ("Update" in item_information) {
@@ -414,6 +422,8 @@ export class BaseManager {
         this.graphManager?.updateItem(item);
         this.backupGraphManager?.updateItem(item);
 
+        // The subscribers cache the item again as they receive it, and without any, an older cached version must not outlive it.
+        this.latest.delete(item.key);
         const callbacks = this.listeners.get(item.key);
         if (callbacks) {
           callbacks.forEach((cb) => cb(item));
@@ -620,15 +630,31 @@ export class BaseManager {
     if (!this.listeners.has(name)) {
       this.listeners.set(name, new Set());
     }
-    this.listeners.get(name)!.add(callback);
+    // Every item that is delivered is kept in memory as well (see cached).
+    const deliver = (item: Item) => {
+      this.latest.set(name, item);
+      callback(item);
+    };
+    this.listeners.get(name)!.add(deliver);
 
     // Ensure that the callback is called with the current item if it exists in the database, or request an update via WebSocket if it does not exist.
     this.retrieve(name)
-      .then(callback)
+      .then(deliver)
       .catch(() => {});
 
     // Return unsubscribe function
-    return () => this.listeners.get(name)!.delete(callback);
+    return () => this.listeners.get(name)!.delete(deliver);
+  }
+
+  /**
+   * Get the last item delivered for this name to any subscriber, at once (retrieve goes through the database and takes at least a tick), or null.
+   *
+   * A component that mounts again (e.g. a constituent in a section whose title was edited) starts with it, so that it never renders empty for a frame, which shrank the page and made it jump.
+   *
+   * @param name The name of the item.
+   */
+  cached(name: string): Item | null {
+    return this.latest.get(name) ?? null;
   }
 
   /**

@@ -608,7 +608,10 @@ function Constituent({
 }) {
   const baseManager = useContext(BaseManagerContext);
 
-  const [item, setItem] = useState<Item | null>(null);
+  // A constituent that mounts again starts with the item that it had (see BaseManager.cached), so that it never renders empty for a frame.
+  const [item, setItem] = useState<Item | null>(
+    () => baseManager?.cached(name) ?? null
+  );
 
   // Parents pass a fresh context object on every render ({ ...context, depth }), so the effects below must not depend on it:
   // otherwise every render of an ancestor (e.g. a click in the table of contents) refetches and re-renders every constituent.
