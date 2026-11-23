@@ -524,6 +524,22 @@ function contentHash(content: StructuredContent): string {
 }
 
 /**
+ * Get the key of a block among its siblings, which says what the block is rather than where it is.
+ *
+ * With a key by position, a TQF added or removed above shifted every later block onto the component of another block.
+ * A constituent then remounted without its item and rendered nothing until the item came again, so the page shrank for a moment and the scroll position fell, up to the top.
+ * Sections are keyed by their key and constituents by their name, so that edits inside them keep them mounted; other blocks are keyed by their content.
+ * @param content The block.
+ * @returns The key (made unique among siblings by the caller).
+ */
+function blockKey(content: StructuredContent): string {
+  if ("Section" in content) return `s-${content.Section.key}`;
+  if ("ProgressSection" in content) return `s-${content.ProgressSection.key}`;
+  if ("Add" in content) return `a-${content.Add}`;
+  return `c-${contentHash(content)}`;
+}
+
+/**
  * This component renders a list of block content.
  *
  * Every run of consecutive TQFs goes into one TQFStack, so that it stacks and scrolls as a whole.
@@ -541,6 +557,7 @@ export const StructuredContentList = memo(function StructuredContentList({
   // Stacks are keyed by their order and cards by their content, not by their position, so that a live edit above or inside an open stack keeps it open with the same current card.
   let stacks = 0;
   const cardKeys = new Map<string, number>();
+  const blockKeys = new Map<string, number>();
   let index = 0;
   while (index < contents.length) {
     if ("TQF" in contents[index]) {
@@ -563,9 +580,12 @@ export const StructuredContentList = memo(function StructuredContentList({
         </TQFStack>
       );
     } else {
+      const key = blockKey(contents[index]);
+      const count = blockKeys.get(key) ?? 0;
+      blockKeys.set(key, count + 1);
       elements.push(
         <StructuredContentRenderer
-          key={index}
+          key={`${key}-${count}`}
           content={contents[index]}
           context={context}
         />
