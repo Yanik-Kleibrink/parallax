@@ -14,7 +14,7 @@
  * "open" names the base by its ID (`id` in its config); the window opens the item in the stored base with that ID.
  * "open" may also name a section by its key (the server's hash of its raw title); the window then opens the item's content and scrolls to the first section with that key in it, in document order, including the sections of included constituents.
  * An "open" of the item that the window already shows replaces its history entry, and back, forward, or a reload never jump to a section again.
- * The window sends "state" (where it is, which section the user reads, the last input, focus, and visibility) on every connect and every change, and "dismiss" when the X of a TQF is clicked.
+ * The window sends "state" (where it is, which section the user reads, the last input, focus, and visibility) on every connect and every change, "dismiss" when the X of a TQF is clicked, and "jump" when a scroll to a section starts and ends (see JumpOutcome).
  * As the Parallax server never edits org files, the remote control removes a dismissed TQF, and the page updates through the base as usual.
  */
 
@@ -110,10 +110,28 @@ type FromRemote =
  *
  * "state" carries the state of the window.
  * "dismiss" names a TQF whose X was clicked and the item that contains it.
+ * "jump" reports a scroll to a section in the pane that shows the node, where the target is the id of the headline of the section (node-<section key>).
  */
 type ToRemote =
   | ({ type: "state" } & RemoteState)
-  | { type: "dismiss"; tqf: string; item: string | null };
+  | { type: "dismiss"; tqf: string; item: string | null }
+  | { type: "jump"; node: string; target: string; outcome: JumpOutcome };
+
+/**
+ * This type represents what became of a scroll to a section (see NodeContent).
+ *
+ * A scroll is first reported as "started".
+ * It ends because the section "reached" the top, or "settled" below it as the page is too short to bring it higher.
+ * Otherwise, it was "not-found" in time, "timed-out" while the page kept growing, "cancelled" by the user scrolling, or "replaced" by a later target (or by none, when the page navigates away).
+ */
+export type JumpOutcome =
+  | "started"
+  | "reached"
+  | "settled"
+  | "not-found"
+  | "timed-out"
+  | "cancelled"
+  | "replaced";
 
 /**
  * The time (ms) that a change waits before the state is sent, which is also the shortest time between two states.
@@ -686,6 +704,18 @@ export class RemoteControl {
   }
 
   /**
+   * Tell the remote control what became of a scroll to a section (nothing if it is not connected).
+   *
+   * @param node The node that the pane shows.
+   * @param target The id of the section's headline.
+   * @param outcome What became of it.
+   */
+  jump(node: string, target: string, outcome: JumpOutcome) {
+    const message: ToRemote = { type: "jump", node, target, outcome };
+    this.send(JSON.stringify(message));
+  }
+
+  /**
    * Register the headline of a rendered section.
    *
    * @param headline The headline.
@@ -824,4 +854,21 @@ export function useRemoteScrollRoot(
     if (!ref.current) return;
     return remote.registerRoot(ref.current, nodeID);
   }, [remote, nodeID, ref]);
+}
+
+/**
+ * This hook gives a NodeContent the function that reports its scrolls to a section to the remote control.
+ *
+ * @param nodeID The node that the content area shows.
+ * @returns The function that reports a target (the id of a headline) and what became of it.
+ */
+export function useRemoteJump(
+  nodeID: string
+): (target: string, outcome: JumpOutcome) => void {
+  const remote = useContext(RemoteControlContext);
+  return useCallback(
+    (target: string, outcome: JumpOutcome) =>
+      remote.jump(nodeID, target, outcome),
+    [remote, nodeID]
+  );
 }

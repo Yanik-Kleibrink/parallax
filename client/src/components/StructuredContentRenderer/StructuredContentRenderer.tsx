@@ -41,6 +41,13 @@ interface StructuredContentRendererContext {
   depth: number;
 
   /**
+   * A function that is called with +1 when a constituent starts waiting for its item, and with -1 when it has it (or unmounts).
+   *
+   * It tells a pending scroll target whether the page may still grow (see NodeContent).
+   */
+  trackLoading?: (delta: number) => void;
+
+  /**
    *   The function that is called with the reference key when the user clicks on a reference in a citation.
    */
   openReference?: (key: string) => void;
@@ -615,9 +622,9 @@ function Constituent({
 
   // Parents pass a fresh context object on every render ({ ...context, depth }), so the effects below must not depend on it:
   // otherwise every render of an ancestor (e.g. a click in the table of contents) refetches and re-renders every constituent.
-  const handleContentRender = useRef(context.handleContentRender);
+  const latestContext = useRef(context);
   useLayoutEffect(() => {
-    handleContentRender.current = context.handleContentRender;
+    latestContext.current = context;
   });
 
   useEffect(() => {
@@ -628,8 +635,17 @@ function Constituent({
   }, [baseManager, name]);
 
   useLayoutEffect(() => {
-    handleContentRender.current?.();
+    latestContext.current.handleContentRender?.();
   }, [item]);
+
+  // While the constituent waits for its item, it is counted, so that a pending scroll target does not settle while the page may still grow.
+  const waiting = item === null;
+  useEffect(() => {
+    if (!waiting) return;
+    const track = latestContext.current.trackLoading;
+    track?.(1);
+    return () => track?.(-1);
+  }, [waiting]);
 
   // The constituent's sections and TQFs belong to the constituent, not to the item that includes it, and its section paths start at its own sections (the remote control matches them against its file).
   if (item && item.content) {
