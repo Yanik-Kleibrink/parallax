@@ -13,7 +13,8 @@
  * The remote control sends "open" (show an item, or the main page of the base without one) and "emphasize" (pulse a TQF).
  * "open" names the base by its ID (`id` in its config); the window opens the item in the stored base with that ID.
  * "open" may also name a section by its key (the server's hash of its raw title); the window then opens the item's content and scrolls to the first section with that key in it, in document order, including the sections of included constituents.
- * An "open" of the item that the window already shows replaces its history entry, and back, forward, or a reload never jump to a section again.
+ * "open" may also name a page of the item's PDF (1-based); once the item has loaded, the window opens the PDF window, which scrolls to that page, and the window manager decides which windows give way (a section in the same message is dropped if the content window does). For an item without a PDF, the page is ignored.
+ * An "open" of the item that the window already shows replaces its history entry, and back, forward, or a reload never jump to a section or a page again.
  * The window sends "state" (where it is, which section the user reads, the last input, focus, and visibility) on every connect and every change, "dismiss" when the X of a TQF is clicked, and "jump" when a scroll to a section starts and ends (see JumpOutcome).
  * As the Parallax server never edits org files, the remote control removes a dismissed TQF, and the page updates through the base as usual.
  */
@@ -89,20 +90,27 @@ type RemoteState = {
 };
 
 /**
- * This type represents the router state with which the remote control opens an item at a section.
+ * This type represents the router state with which the remote control opens an item at a section, at a page of its PDF, or both.
  *
  * The section is the server's key of the section (a hash of its raw title), as the remote control sent it.
+ * The page is a page of the item's PDF (1-based).
  */
-export type SectionNavigationState = { section: string };
+export type RemoteNavigationState = { section?: string; page?: number };
 
 /**
  * This type represents a message from the remote control.
  *
- * "open" shows an item by its key (without a key, the main page of the base) in the base with the given ID, scrolled to the first section with the key `section` if given.
+ * "open" shows an item by its key (without a key, the main page of the base) in the base with the given ID, scrolled to the first section with the key `section` if given, and with its PDF at `page` if given.
  * "emphasize" pulses a TQF for `ms` (default PULSE), also one that is rendered later within that time.
  */
 type FromRemote =
-  | { type: "open"; key?: string; base: string; section?: string }
+  | {
+      type: "open";
+      key?: string;
+      base: string;
+      section?: string;
+      page?: number;
+    }
   | { type: "emphasize"; tqf: string; ms?: number };
 
 /**
@@ -252,7 +260,9 @@ function parseMessage(data: unknown): FromRemote | null {
     m.type === "open" &&
     optionalString(m.key) &&
     typeof m.base === "string" &&
-    optionalString(m.section)
+    optionalString(m.section) &&
+    (m.page === undefined ||
+      (typeof m.page === "number" && Number.isInteger(m.page) && m.page >= 1))
   ) {
     return m as FromRemote;
   }
@@ -527,9 +537,9 @@ export class RemoteControl {
    */
   private receive(message: FromRemote) {
     if (message.type === "open") {
-      const { key, base, section } = message;
+      const { key, base, section, page } = message;
       this.opening = this.opening
-        .then(() => this.open(key, base, section))
+        .then(() => this.open(key, base, section, page))
         .catch((error) =>
           console.error("The remote control could not open an item:", error)
         );
@@ -627,11 +637,13 @@ export class RemoteControl {
    * @param key The key of the item, or undefined for the main page of the base.
    * @param baseID The ID of the base.
    * @param section The key of the section to scroll to, if any (only with an item).
+   * @param page The page of the item's PDF to show, if any (1-based, only with an item).
    */
   private async open(
     key: string | undefined,
     baseID: string,
-    section?: string
+    section?: string,
+    page?: number
   ) {
     // The stored bases, not the base the window shows, as that may be stale while the window switches bases.
     // If several stored bases have the ID, the window stays in the one it shows.
@@ -644,9 +656,11 @@ export class RemoteControl {
       return;
     }
     const item = key === undefined ? "" : `/${encodeURIComponent(key)}`;
-    // The section goes along as router state, which OnNode turns into its scroll target.
-    const state: SectionNavigationState | undefined =
-      key !== undefined && section !== undefined ? { section } : undefined;
+    // The section and the page go along as router state, which OnNode turns into its targets.
+    const state: RemoteNavigationState | undefined =
+      key !== undefined && (section !== undefined || page !== undefined)
+        ? { section, page }
+        : undefined;
     // Opening the item that the window shows does not add a history entry.
     const replace =
       this.route.base === name &&

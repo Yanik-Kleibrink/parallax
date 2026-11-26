@@ -2,7 +2,7 @@ import { Sidebar, NodeView } from "@/components";
 import {
   BaseManagerContext,
   pageTitle,
-  type SectionNavigationState,
+  type RemoteNavigationState,
 } from "@/providers";
 
 import {
@@ -31,15 +31,22 @@ export default function OnNode() {
   const [modalNode, setModalNode] = useState<string | null>(null);
   const location = useLocation();
   const navigationType = useNavigationType();
-  // A section that the remote control asked for comes as router state (see SectionNavigationState).
+  // A section or PDF page that the remote control asked for comes as router state (see RemoteNavigationState).
   // The id of a section's headline is node-<key> (see StructuredContentRenderer).
-  // Back, forward, and reload (POP) restore the state of their entry, but must not jump to its section again.
-  const section =
+  // Back, forward, and reload (POP) restore the state of their entry, but must not jump to its section or page again.
+  const navigationTarget =
     navigationType === "POP"
-      ? undefined
-      : (location.state as Partial<SectionNavigationState> | null)?.section;
+      ? null
+      : (location.state as Partial<RemoteNavigationState> | null);
+  const section = navigationTarget?.section;
+  const page = navigationTarget?.page;
   const sectionHash =
     typeof section === "string" ? `node-${section}` : undefined;
+  // The location key makes every navigation with a page a new target, so opening the same page again scrolls again.
+  const pdfPage = useMemo(
+    () => (typeof page === "number" ? { page, key: location.key } : undefined),
+    [page, location.key]
+  );
   const [hash, setHash] = useState<string | undefined>(sectionHash);
 
   // Each navigation has its own key, so opening the same section again scrolls again.
@@ -130,6 +137,7 @@ export default function OnNode() {
         // Until the base in the address has loaded, the previous base's item may still be shown, which must not take over the target.
         hash={baseManager?.getName() === base ? hash : undefined}
         setHash={setHash}
+        pdfPage={baseManager?.getName() === base ? pdfPage : undefined}
         layout={layout}
         maxOpenWindows={maxNumberOfOpenWindows}
         showNavigationButton={layout === "vertical"}

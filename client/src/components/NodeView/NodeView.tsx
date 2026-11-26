@@ -217,6 +217,7 @@ export function NodeView({
   nodeID,
   hash,
   setHash,
+  pdfPage,
   layout = "horizontal",
   maxOpenWindows = 2,
   showNavigationButton = false,
@@ -225,6 +226,7 @@ export function NodeView({
   nodeID: string;
   hash?: string;
   setHash?: (hash: string | undefined) => void;
+  pdfPage?: { page: number; key: string };
   layout?: "horizontal" | "vertical";
   maxOpenWindows: number;
   showNavigationButton?: boolean;
@@ -247,6 +249,10 @@ export function NodeView({
   const [availableWindows, setAvailableWindows] = useState<Set<WindowType>>(
     new Set()
   );
+  // The node for which availableWindows was last computed, as the set of the previous node stays until the new item has loaded.
+  const [availableWindowsNodeID, setAvailableWindowsNodeID] = useState<
+    string | null
+  >(null);
   const [userInteracted, setUserInteracted] = useState(false);
   const [connected, setConnected] = useState<boolean>(false);
 
@@ -327,6 +333,28 @@ export function NodeView({
     }
   }
 
+  // A page of the PDF (e.g. from the remote control) is shown in the PDF window, so a new page opens it once, and the window manager decides which windows give way.
+  // The page is taken over only once the item has loaded, and dropped for an item without a PDF, so that no window gives way for a PDF window that is never shown.
+  // The page stays until the next navigation, so reopening the PDF window on the same item scrolls to it again.
+  const [handledPdfPage, setHandledPdfPage] = useState<
+    { page: number; key: string } | undefined
+  >(undefined);
+  if (pdfPage !== handledPdfPage && availableWindowsNodeID === nodeID) {
+    setHandledPdfPage(pdfPage);
+    if (pdfPage !== undefined && availableWindows.has("PDF")) {
+      setNodeViewContext((prevContext) => {
+        const next = prevContext.clone();
+        next.openWindow("PDF");
+        return next;
+      });
+      // As for a section, the details panel must not open again once the item has loaded.
+      if (layout === "vertical") {
+        setNodeDetailsState("Minimized");
+        setUserInteracted(true);
+      }
+    }
+  }
+
   // Once a target has been taken over, closing or minimizing the content window (e.g. opening the details panel in vertical layout) drops it, as NodeContent can no longer drop it after it unmounts.
   const contentWindowOpen = nodeViewContext.openWindows.some(
     ([windowType, windowState]) =>
@@ -351,6 +379,7 @@ export function NodeView({
       const node = getNode(nodeID, item);
       if (!node) {
         setAvailableWindows(new Set());
+        setAvailableWindowsNodeID(nodeID);
         return;
       }
 
@@ -413,6 +442,7 @@ export function NodeView({
           ? previousWindows
           : windows
       );
+      setAvailableWindowsNodeID(nodeID);
     };
 
     // Note that subscribe will automatically deliver the stored item.
@@ -563,7 +593,7 @@ export function NodeView({
               break;
             case "PDF":
               if (pdfURL) {
-                content = <NodePDF url={pdfURL} />;
+                content = <NodePDF url={pdfURL} page={pdfPage} />;
               }
               break;
             case "HTML":
